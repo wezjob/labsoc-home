@@ -6,6 +6,7 @@
 [![Suricata](https://img.shields.io/badge/Suricata-8.0.3-orange)](https://suricata.io/)
 [![Zeek](https://img.shields.io/badge/Zeek-8.1.1-green)](https://zeek.org/)
 [![n8n](https://img.shields.io/badge/n8n-SOAR-purple)](https://n8n.io/)
+[![IRIS DFIR](https://img.shields.io/badge/IRIS-DFIR-red)](https://dfir-iris.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)](https://docker.com/)
 
 ---
@@ -18,6 +19,7 @@ LabSOC Home est une infrastructure SOC complète déployable sur macOS avec Dock
 - **Suricata** - IDS/IPS avec détection de signatures
 - **Zeek** - Analyse réseau et métadonnées
 - **n8n** - SOAR pour automatisation des réponses
+- **IRIS DFIR** - Plateforme de gestion d'incidents
 - **Auditbeat** - HIDS pour surveillance de l'hôte
 
 ## 🏗️ Architecture
@@ -93,6 +95,7 @@ brew install suricata zeek
 | Kibana | 5601 | Interface de visualisation |
 | Logstash | 5044, 5514 | Traitement des logs |
 | n8n | 5678 | Automatisation SOAR |
+| IRIS DFIR | 8443 | Gestion d'incidents (HTTPS) |
 | Redis | 6379 | Cache |
 | PostgreSQL | 5432 | Base de données n8n |
 
@@ -102,10 +105,216 @@ brew install suricata zeek
 |---------|-------------|--------------|
 | Elasticsearch | elastic | LabSoc2026! |
 | Kibana | elastic | LabSoc2026! |
+| IRIS DFIR | administrator | (voir .env dans iris-web/) |
 | n8n | admin | LabSocN8N2026! |
 | PostgreSQL | labsoc | LabSocDB2026! |
 
 > ⚠️ **Important** : Changez ces mots de passe en production !
+
+---
+
+## 🔬 IRIS DFIR - Gestion d'Incidents
+
+### Installation
+
+```bash
+# Cloner IRIS dans le projet
+cd labsoc-home
+git clone https://github.com/dfir-iris/iris-web.git
+
+# Configuration
+cd iris-web
+cp .env.model .env
+# Éditer .env avec vos paramètres
+
+# Démarrer IRIS
+docker compose up -d
+```
+
+### Accès
+
+- **URL** : https://localhost:8443
+- **User** : `administrator`
+- **Password** : Généré au premier démarrage (voir `docker logs iris-web`)
+
+### Obtenir la clé API IRIS
+
+1. Se connecter à IRIS : https://localhost:8443
+2. Menu → **My Settings** → **API Key**
+3. Cliquer **Reveal API Key**
+4. Copier la clé pour l'utiliser dans n8n
+
+---
+
+## 🔗 Intégration ELK → n8n → IRIS
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    LabSOC Integration Flow                        │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐       │
+│   │Suricata │    │Logstash │    │  ELK    │    │  n8n    │       │
+│   │  Zeek   │───▶│         │───▶│ Stack   │───▶│  SOAR   │       │
+│   │Auditbeat│    │         │    │         │    │         │       │
+│   └─────────┘    └─────────┘    └─────────┘    └────┬────┘       │
+│                                                      │            │
+│                                                      ▼            │
+│                                               ┌─────────┐         │
+│                                               │  IRIS   │         │
+│                                               │  DFIR   │         │
+│                                               └─────────┘         │
+│                                                                   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Configuration du Workflow n8n
+
+1. **Ouvrir n8n** : http://localhost:5678
+
+2. **Importer le workflow** :
+   - Menu → Import from file
+   - Sélectionner : `n8n/workflows/elk-iris-v3.json`
+
+3. **Configurer le credential IRIS** :
+   - Cliquer sur le node "Create Case"
+   - Credential → Create New → Header Auth
+   - **Name** : `Authorization`
+   - **Value** : `Bearer VOTRE_CLE_API_IRIS`
+
+4. **Activer le workflow** :
+   - Toggle en haut à droite → **Active**
+
+5. **Webhook** : `http://localhost:5678/webhook/elk-iris-v3`
+
+### Tester l'intégration
+
+```bash
+# Envoyer une alerte de test
+curl -X POST 'http://localhost:5678/webhook/elk-iris-v3' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "severity": "critical",
+    "rule_name": "ET TROJAN Test Alert",
+    "src_ip": "192.168.1.100",
+    "dest_ip": "185.220.101.50",
+    "mitre": {
+      "technique": "T1071.001",
+      "tactic": "Command and Control"
+    }
+  }'
+
+# Vérifier dans IRIS (API)
+curl -sk 'https://localhost:8443/manage/cases/list' \
+  -H "Authorization: Bearer VOTRE_CLE_API"
+```
+
+---
+
+## 📊 Configuration Kibana - Visualisations
+
+### 1. Créer les Data Views
+
+```bash
+# Via API (automatique)
+./scripts/create-visualizations.sh
+
+# Ou manuellement dans Kibana :
+# Menu → Stack Management → Data Views → Create
+# Patterns : suricata-*, zeek-*, labsoc-*
+# Time field : @timestamp
+```
+
+### 2. Champs disponibles pour visualisations
+
+| Visualisation | Champ |
+|---------------|-------|
+| Severity | `event.severity.keyword` |
+| Source IP | `source.ip.keyword` |
+| Dest IP | `destination.ip.keyword` |
+| Rule Name | `rule.name.keyword` |
+| MITRE Tactic | `mitre.tactic.keyword` |
+| MITRE Technique | `mitre.technique.keyword` |
+| Timeline | `@timestamp` |
+
+### 3. Créer les visualisations
+
+Dans Kibana → **Visualize Library** → **Create visualization** :
+
+#### Total Alerts (Metric)
+- Type : **Metric**
+- Data View : `labsoc-*`
+- Metric : Count of records
+
+#### Alerts by Severity (Donut)
+- Type : **Pie/Donut**
+- Slice by : `event.severity.keyword` (Top 5)
+- Metric : Count
+
+#### MITRE Tactics Distribution (Pie)
+- Type : **Pie**
+- Slice by : `mitre.tactic.keyword` (Top 10)
+- Metric : Count
+
+#### Top Source IPs (Bar)
+- Type : **Bar horizontal**
+- X-axis : `source.ip.keyword` (Top 10)
+- Y-axis : Count
+
+#### Alert Timeline (Area)
+- Type : **Area**
+- X-axis : `@timestamp` (Date histogram)
+- Y-axis : Count
+
+#### Top Alert Rules (Table)
+- Type : **Table**
+- Split rows : `rule.name.keyword` (Top 10)
+- Metric : Count
+
+### 4. Créer le Dashboard
+
+1. Menu → **Dashboard** → **Create dashboard**
+2. Cliquer **Add from library**
+3. Sélectionner les 6 visualisations
+4. Arranger et redimensionner
+5. **Save** → Nom : `LabSOC Security Dashboard`
+
+---
+
+## 🎯 Règles MITRE ATT&CK
+
+### Suricata (50+ règles)
+
+Le fichier `rules/mitre-attack.rules` contient des règles mappées aux tactiques MITRE :
+
+| Tactique | Techniques | Exemples |
+|----------|------------|----------|
+| Initial Access | T1566, T1190 | Phishing, Exploit Public Apps |
+| Execution | T1059, T1204 | Command Line, User Execution |
+| Persistence | T1053, T1547 | Scheduled Tasks, Registry Run Keys |
+| Privilege Escalation | T1055, T1068 | Process Injection, Exploitation |
+| Defense Evasion | T1070, T1027 | Indicator Removal, Obfuscation |
+| Credential Access | T1003, T1110 | Credential Dumping, Brute Force |
+| Discovery | T1046, T1082 | Network Scanning, System Info |
+| Lateral Movement | T1021, T1080 | Remote Services, Taint Shared Content |
+| Collection | T1005, T1114 | Data from Local System, Email |
+| Command and Control | T1071, T1095 | Application Layer Protocol |
+| Exfiltration | T1041, T1048 | Exfil Over C2, Alternative Protocol |
+
+### Elasticsearch (10 règles de détection)
+
+```bash
+# Charger les règles via API
+./scripts/load-mitre-rules.sh
+
+# Ou importer manuellement
+curl -u elastic:LabSoc2026! -X POST \
+  "http://localhost:5601/api/detection_engine/rules/_bulk_create" \
+  -H "kbn-xsrf: true" -H "Content-Type: application/json" \
+  -d @rules/elasticsearch-mitre-rules.json
+```
 
 ## 📂 Structure du projet
 
