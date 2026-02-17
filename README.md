@@ -56,7 +56,13 @@ LabSOC Home est une infrastructure SOC complète déployable sur macOS avec Dock
 │  ┌──────────┐       ┌──────────┐                                │
 │  │  Kibana  │       │   n8n    │                                │
 │  │  (SIEM)  │       │  (SOAR)  │                                │
-│  └──────────┘       └──────────┘                                │
+│  └──────────┘       └────┬─────┘                                │
+│                          │                                       │
+│                          ▼                                       │
+│                   ┌────────────┐                                 │
+│                   │ IRIS DFIR  │  (Docker)                       │
+│                   │ Incidents  │                                 │
+│                   └────────────┘                                 │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
