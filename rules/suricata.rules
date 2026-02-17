@@ -1,0 +1,11 @@
+# ============================================
+# LABSOC HOME - Empty Suricata Rules File
+# ============================================
+# This file will contain downloaded rules from
+# Emerging Threats, Suricata Open Rules, etc.
+#
+# To update rules, run:
+# docker exec labsoc-suricata suricata-update
+#
+# Or use the update script:
+# ./scripts/update-rules.sh

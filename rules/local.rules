@@ -1,0 +1,115 @@
+# ============================================
+# LABSOC HOME - Local Suricata Rules
+# ============================================
+# Custom detection rules for your environment
+
+# ============================================
+# SSH Bruteforce Detection
+# ============================================
+alert ssh any any -> $HOME_NET 22 (msg:"LABSOC SSH Brute Force Attempt"; \
+  flow:to_server,established; \
+  threshold:type both,track by_src,count 5,seconds 60; \
+  classtype:attempted-admin; sid:1000001; rev:1;)
+
+# ============================================
+# DNS Tunneling Detection
+# ============================================
+alert dns any any -> any any (msg:"LABSOC Possible DNS Tunneling - Long Query"; \
+  dns.query; content:"."; pcre:"/^[a-zA-Z0-9-]{50,}\./"; \
+  threshold:type both,track by_src,count 10,seconds 60; \
+  classtype:policy-violation; sid:1000002; rev:1;)
+
+# ============================================
+# Data Exfiltration Detection
+# ============================================
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"LABSOC Large Outbound Data Transfer"; \
+  flow:to_server,established; \
+  dsize:>10000; \
+  threshold:type both,track by_src,count 100,seconds 60; \
+  classtype:policy-violation; sid:1000003; rev:1;)
+
+# ============================================
+# Suspicious Ports
+# ============================================
+alert tcp $HOME_NET any -> $EXTERNAL_NET [4444,5555,6666,7777,8888,31337] (msg:"LABSOC Connection to Suspicious Port"; \
+  flow:to_server,established; \
+  classtype:trojan-activity; sid:1000004; rev:1;)
+
+# ============================================
+# TOR Detection
+# ============================================
+alert tcp $HOME_NET any -> $EXTERNAL_NET [9001,9030,9050,9051,9150] (msg:"LABSOC Possible TOR Traffic"; \
+  flow:to_server,established; \
+  classtype:policy-violation; sid:1000005; rev:1;)
+
+# ============================================
+# Cryptocurrency Mining
+# ============================================
+alert tcp $HOME_NET any -> any any (msg:"LABSOC Possible Crypto Mining - Stratum Protocol"; \
+  flow:to_server,established; \
+  content:"stratum+tcp://"; nocase; fast_pattern; \
+  classtype:policy-violation; sid:1000006; rev:1;)
+
+alert http $HOME_NET any -> any any (msg:"LABSOC Possible Crypto Mining Pool Connection"; \
+  http.host; content:"pool"; nocase; \
+  pcre:"/pool\.(minergate|nanopool|ethermine|f2pool|antpool)/i"; \
+  classtype:policy-violation; sid:1000007; rev:1;)
+
+# ============================================
+# Malware C2 Beaconing
+# ============================================
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LABSOC Possible C2 Beaconing - Regular Interval"; \
+  flow:to_server,established; \
+  threshold:type both,track by_src,count 60,seconds 3600; \
+  classtype:trojan-activity; sid:1000008; rev:1;)
+
+# ============================================
+# Suspicious User-Agents
+# ============================================
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LABSOC Suspicious Empty User-Agent"; \
+  flow:to_server,established; \
+  http.user_agent; content:""; \
+  classtype:trojan-activity; sid:1000009; rev:1;)
+
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LABSOC Suspicious User-Agent - PowerShell"; \
+  flow:to_server,established; \
+  http.user_agent; content:"PowerShell"; nocase; \
+  classtype:trojan-activity; sid:1000010; rev:1;)
+
+# ============================================
+# Lateral Movement
+# ============================================
+alert smb any any -> $HOME_NET 445 (msg:"LABSOC SMB Admin Share Access"; \
+  flow:to_server,established; \
+  content:"|FF|SMB"; depth:4; \
+  content:"ADMIN$"; nocase; \
+  classtype:attempted-admin; sid:1000011; rev:1;)
+
+alert tcp any any -> $HOME_NET 5985 (msg:"LABSOC WinRM Connection Attempt"; \
+  flow:to_server; \
+  classtype:attempted-admin; sid:1000012; rev:1;)
+
+# ============================================
+# ICMP Tunneling
+# ============================================
+alert icmp any any -> any any (msg:"LABSOC Large ICMP Packet - Possible Tunneling"; \
+  dsize:>800; \
+  classtype:policy-violation; sid:1000013; rev:1;)
+
+# ============================================
+# Ransomware Indicators
+# ============================================
+alert smb any any -> $HOME_NET 445 (msg:"LABSOC Possible Ransomware - Mass File Rename"; \
+  flow:to_server,established; \
+  threshold:type both,track by_src,count 50,seconds 30; \
+  classtype:trojan-activity; sid:1000014; rev:1;)
+
+# ============================================
+# Phishing Detection
+# ============================================
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LABSOC Possible Credential Harvesting"; \
+  flow:to_server,established; \
+  http.method; content:"POST"; \
+  http.uri; pcre:"/(login|signin|auth|password|credential)/i"; \
+  http.host; pcre:"/^(?!.*(microsoft|google|apple|amazon|facebook|linkedin)).*\.(tk|ml|ga|cf|gq|xyz|top|pw|cc|ws)/i"; \
+  classtype:social-engineering; sid:1000015; rev:1;)

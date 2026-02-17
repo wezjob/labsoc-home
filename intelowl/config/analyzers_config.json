@@ -1,0 +1,101 @@
+{
+  "default_analyzers": {
+    "ip": [
+      "AbuseIPDB",
+      "VirusTotal_v3_Get_Observable",
+      "OTX_Check_IP",
+      "GreyNoise_Community",
+      "Shodan_Search",
+      "ThreatFox"
+    ],
+    "domain": [
+      "VirusTotal_v3_Get_Observable",
+      "OTX_Check_Domain",
+      "URLhaus_Recent_Payloads", 
+      "Urlscan_Search",
+      "WhoisRDAP",
+      "DNS_Resolvers"
+    ],
+    "url": [
+      "VirusTotal_v3_Get_Observable",
+      "URLhaus",
+      "Urlscan_Submit_Result",
+      "PhishTank",
+      "GoogleSafebrowsing"
+    ],
+    "hash": [
+      "VirusTotal_v3_Get_File",
+      "MalwareBazaar_Get_File",
+      "OTX_Check_Hash",
+      "HybridAnalysis_Get_Report",
+      "IntelX_Intelligent_Search"
+    ],
+    "file": [
+      "VirusTotal_v3_Scan_File",
+      "File_Info",
+      "PE_Info",
+      "Strings_Info",
+      "Yara"
+    ]
+  },
+  "playbooks": {
+    "full_investigation_ip": {
+      "description": "Complete IP investigation",
+      "analyzers": [
+        "AbuseIPDB",
+        "VirusTotal_v3_Get_Observable",
+        "OTX_Check_IP",
+        "GreyNoise_Community",
+        "Shodan_Search",
+        "ThreatFox",
+        "Spamhaus_Check",
+        "MaxMind_GeoIP",
+        "Censys_Search"
+      ]
+    },
+    "quick_check_ip": {
+      "description": "Quick IP reputation check",
+      "analyzers": [
+        "AbuseIPDB",
+        "VirusTotal_v3_Get_Observable"
+      ]
+    },
+    "full_investigation_domain": {
+      "description": "Complete domain investigation",
+      "analyzers": [
+        "VirusTotal_v3_Get_Observable",
+        "OTX_Check_Domain",
+        "URLhaus_Recent_Payloads",
+        "Urlscan_Search",
+        "WhoisRDAP",
+        "DNS_Resolvers",
+        "DNStwist"
+      ]
+    },
+    "malware_analysis": {
+      "description": "Full malware analysis",
+      "analyzers": [
+        "VirusTotal_v3_Scan_File",
+        "File_Info",
+        "PE_Info",
+        "Strings_Info",
+        "Yara",
+        "Capa_Info",
+        "HybridAnalysis_Get_Report"
+      ]
+    }
+  },
+  "auto_analysis": {
+    "enabled": true,
+    "triggers": {
+      "suricata_alert": {
+        "observable_type": "ip",
+        "playbook": "quick_check_ip"
+      },
+      "zeek_notice": {
+        "observable_type": "ip", 
+        "playbook": "quick_check_ip"
+      }
+    }
+  }
+}

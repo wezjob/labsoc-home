@@ -1,0 +1,197 @@
+{
+  "name": "LABSOC - Incident Response Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-incident",
+      "name": "Incident Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.severity }}",
+              "operation": "equals",
+              "value2": "critical"
+            }
+          ]
+        }
+      },
+      "id": "check-critical",
+      "name": "Is Critical?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-incidents/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ...($json), 'status': 'open', 'created_at': new Date().toISOString(), 'incident_id': 'INC-' + Date.now() }) }}",
+        "options": {}
+      },
+      "id": "create-incident",
+      "name": "Create Incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "labsoc@localhost",
+        "toEmail": "={{ $json.notify_email || 'soc-team@localhost' }}",
+        "subject": "=🚨 CRITICAL INCIDENT: {{ $json.title }}",
+        "text": "=Incident ID: {{ $('Create Incident').json.incident_id }}\nSeverity: {{ $json.severity }}\nDescription: {{ $json.description }}\n\nSource IP: {{ $json.source_ip }}\nDestination: {{ $json.destination_ip }}\n\nTimestamp: {{ $json.timestamp }}\n\nPlease investigate immediately.",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.slack_webhook_url || 'https://hooks.slack.com/services/placeholder' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ 'text': '🚨 *CRITICAL INCIDENT*\\n*' + $json.title + '*\\nSeverity: ' + $json.severity + '\\nSource: ' + $json.source_ip }) }}",
+        "options": {}
+      },
+      "id": "slack-notify",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-incidents/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ...($json), 'status': 'open', 'created_at': new Date().toISOString(), 'incident_id': 'INC-' + Date.now() }) }}",
+        "options": {}
+      },
+      "id": "create-incident-low",
+      "name": "Create Low Priority Incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { 'status': 'created', 'incident_id': $('Create Incident').json.incident_id, 'notifications_sent': ['email', 'slack'] } }}"
+      },
+      "id": "respond-critical",
+      "name": "Respond Critical",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 150]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { 'status': 'created', 'incident_id': $('Create Low Priority Incident').json.incident_id } }}"
+      },
+      "id": "respond-low",
+      "name": "Respond Low",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 400]
+    }
+  ],
+  "connections": {
+    "Incident Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Critical?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Critical?": {
+      "main": [
+        [
+          {
+            "node": "Create Incident",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Low Priority Incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Incident": {
+      "main": [
+        [
+          {
+            "node": "Send Alert Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Respond Critical",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Low Priority Incident": {
+      "main": [
+        [
+          {
+            "node": "Respond Low",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  },
+  "tags": ["labsoc", "incident", "response"],
+  "triggerCount": 0,
+  "updatedAt": "2026-02-17T00:00:00.000Z",
+  "versionId": "1"
+}

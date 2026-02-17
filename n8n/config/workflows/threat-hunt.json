@@ -1,0 +1,155 @@
+{
+  "name": "LABSOC - Scheduled Threat Hunt",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-suricata-*/_search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"size\": 100,\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        { \"range\": { \"@timestamp\": { \"gte\": \"now-6h\" } } },\n        { \"term\": { \"event.kind\": \"alert\" } }\n      ]\n    }\n  },\n  \"aggs\": {\n    \"by_source_ip\": {\n      \"terms\": { \"field\": \"source.ip\", \"size\": 20 }\n    },\n    \"by_signature\": {\n      \"terms\": { \"field\": \"rule.name.keyword\", \"size\": 20 }\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "query-alerts",
+      "name": "Query Recent Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.hits.total.value }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "has-alerts",
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const alerts = $input.first().json.hits.hits;\nconst aggs = $input.first().json.aggregations;\n\nconst topSources = aggs.by_source_ip.buckets.map(b => ({\n  ip: b.key,\n  count: b.doc_count\n}));\n\nconst topSignatures = aggs.by_signature.buckets.map(b => ({\n  signature: b.key,\n  count: b.doc_count\n}));\n\nconst summary = {\n  total_alerts: $input.first().json.hits.total.value,\n  time_range: 'last_6_hours',\n  timestamp: new Date().toISOString(),\n  top_source_ips: topSources.slice(0, 5),\n  top_signatures: topSignatures.slice(0, 5),\n  requires_investigation: topSources.some(s => s.count > 10)\n};\n\nreturn [{ json: summary }];"
+      },
+      "id": "analyze",
+      "name": "Analyze Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-threat-hunts/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "store-results",
+      "name": "Store Hunt Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "content": "No alerts in last 6 hours - environment clean"
+      },
+      "id": "no-alerts",
+      "name": "Log No Alerts",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [850, 400]
+    }
+  ],
+  "connections": {
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Query Recent Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Recent Alerts": {
+      "main": [
+        [
+          {
+            "node": "Has Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Analyze Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log No Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Results": {
+      "main": [
+        [
+          {
+            "node": "Store Hunt Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true,
+    "executionTimeout": 300
+  },
+  "tags": ["labsoc", "threat-hunting", "scheduled"],
+  "triggerCount": 0,
+  "updatedAt": "2026-02-17T00:00:00.000Z",
+  "versionId": "1"
+}

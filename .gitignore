@@ -1,0 +1,96 @@
+# ============================================
+# LabSOC Home - Git Ignore
+# ============================================
+
+# Environment & Secrets
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+
+# Elasticsearch data
+elasticsearch/data/
+
+# Kibana data
+kibana/data/
+
+# Logstash data
+logstash/data/
+
+# Filebeat data
+filebeat/data/
+
+# Auditbeat data
+auditbeat/data/
+
+# Suricata data & captures
+suricata/data/
+*.pcap
+*.pcapng
+
+# Zeek data & logs
+zeek/data/
+
+# n8n data (contains credentials)
+n8n/data/
+
+# Redis data
+redis/data/
+
+# PostgreSQL data
+postgres/data/
+
+# General logs (local)
+logs/*.log
+logs/*.json
+*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Docker
+docker-compose.override.yml
+
+# Test files
+*.test.json
+test-*.pcap
+
+# Backup files
+backups/
+*.backup
+*.bak.tar.gz
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+venv/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+# Environment variables - DO NOT COMMIT
+.env
+.env.local

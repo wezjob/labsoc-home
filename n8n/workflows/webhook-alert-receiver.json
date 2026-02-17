@@ -1,0 +1,234 @@
+{
+  "name": "LabSOC - Webhook Alert Receiver",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "labsoc-alert",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Receive Alert Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "labsoc-alert-webhook"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "alert_id",
+              "value": "={{ $json.body.alert_id || $json.body._id || $randomString(16) }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.body['@timestamp'] || $now.toISO() }}"
+            },
+            {
+              "name": "source",
+              "value": "={{ $json.body.labsoc?.source || $json.body.source || 'external' }}"
+            },
+            {
+              "name": "severity",
+              "value": "={{ $json.body.event?.severity || $json.body.severity || 'medium' }}"
+            },
+            {
+              "name": "rule_name",
+              "value": "={{ $json.body.rule?.name || $json.body.rule_name || 'Manual Alert' }}"
+            },
+            {
+              "name": "source_ip",
+              "value": "={{ $json.body.source?.ip || $json.body.source_ip || 'N/A' }}"
+            },
+            {
+              "name": "dest_ip",
+              "value": "={{ $json.body.destination?.ip || $json.body.dest_ip || 'N/A' }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.body.message || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "parse",
+      "name": "Parse Alert Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "is-critical",
+              "leftValue": "={{ $json.severity }}",
+              "rightValue": "critical",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "severity-check",
+      "name": "Check Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-incidents/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@timestamp\": \"{{ $now.toISO() }}\",\n  \"incident\": {\n    \"id\": \"INC-{{ $now.format('yyyyMMdd-HHmmss') }}-{{ Math.floor(Math.random() * 1000) }}\",\n    \"status\": \"open\",\n    \"priority\": \"P1\",\n    \"escalated\": true,\n    \"owner\": \"soc-tier2\"\n  },\n  \"alert\": {\n    \"id\": \"{{ $json.alert_id }}\",\n    \"source\": \"{{ $json.source }}\",\n    \"rule_name\": \"{{ $json.rule_name }}\",\n    \"severity\": \"{{ $json.severity }}\"\n  },\n  \"source\": { \"ip\": \"{{ $json.source_ip }}\" },\n  \"destination\": { \"ip\": \"{{ $json.dest_ip }}\" },\n  \"message\": \"{{ $json.message }}\",\n  \"response\": {\n    \"action\": \"escalate\",\n    \"automated\": true,\n    \"playbook\": \"critical-incident\"\n  },\n  \"labsoc\": {\n    \"source\": \"n8n\",\n    \"workflow\": \"webhook-receiver\"\n  }\n}",
+        "options": {}
+      },
+      "id": "critical-incident",
+      "name": "Create Critical Incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, -100],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "elastic-creds",
+          "name": "Elasticsearch"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-processed/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@timestamp\": \"{{ $now.toISO() }}\",\n  \"alert\": {\n    \"id\": \"{{ $json.alert_id }}\",\n    \"source\": \"{{ $json.source }}\",\n    \"rule_name\": \"{{ $json.rule_name }}\",\n    \"severity\": \"{{ $json.severity }}\"\n  },\n  \"source\": { \"ip\": \"{{ $json.source_ip }}\" },\n  \"destination\": { \"ip\": \"{{ $json.dest_ip }}\" },\n  \"message\": \"{{ $json.message }}\",\n  \"response\": {\n    \"action\": \"logged\",\n    \"automated\": true,\n    \"playbook\": \"standard-triage\"\n  },\n  \"labsoc\": {\n    \"source\": \"n8n\",\n    \"workflow\": \"webhook-receiver\"\n  }\n}",
+        "options": {}
+      },
+      "id": "standard-log",
+      "name": "Log Standard Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 100],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "elastic-creds",
+          "name": "Elasticsearch"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"received\",\n  \"alert_id\": \"{{ $('Parse Alert Data').item.json.alert_id }}\",\n  \"severity\": \"{{ $('Parse Alert Data').item.json.severity }}\",\n  \"action\": \"{{ $json.result === 'created' ? 'processed' : 'failed' }}\",\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "response-critical",
+      "name": "Respond Critical",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, -100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"received\",\n  \"alert_id\": \"{{ $('Parse Alert Data').item.json.alert_id }}\",\n  \"severity\": \"{{ $('Parse Alert Data').item.json.severity }}\",\n  \"action\": \"logged\",\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "response-standard",
+      "name": "Respond Standard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, 100]
+    }
+  ],
+  "connections": {
+    "Receive Alert Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Alert Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Alert Data": {
+      "main": [
+        [
+          {
+            "node": "Check Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Severity": {
+      "main": [
+        [
+          {
+            "node": "Create Critical Incident",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Standard Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Critical Incident": {
+      "main": [
+        [
+          {
+            "node": "Respond Critical",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Standard Alert": {
+      "main": [
+        [
+          {
+            "node": "Respond Standard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["labsoc", "webhook", "siem"],
+  "triggerCount": 1,
+  "active": false
+}

@@ -1,0 +1,303 @@
+{
+  "name": "LabSOC - Alert Monitor & Triage",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Check Alerts Every 5 Min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-*/_search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        { \"term\": { \"event.kind\": \"alert\" } },\n        { \"range\": { \"@timestamp\": { \"gte\": \"now-5m\" } } }\n      ]\n    }\n  },\n  \"size\": 100,\n  \"sort\": [{ \"@timestamp\": \"desc\" }]\n}",
+        "options": {}
+      },
+      "id": "query-es",
+      "name": "Query New Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "elastic-creds",
+          "name": "Elasticsearch"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-hits",
+              "leftValue": "={{ $json.hits.total.value }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter",
+      "name": "Has New Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "hits.hits",
+        "options": {}
+      },
+      "id": "split",
+      "name": "Split Alerts",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [660, -50]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "alert_id",
+              "value": "={{ $json._id }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json._source['@timestamp'] }}"
+            },
+            {
+              "name": "source",
+              "value": "={{ $json._source.labsoc?.source || 'unknown' }}"
+            },
+            {
+              "name": "severity",
+              "value": "={{ $json._source.event?.severity || 'info' }}"
+            },
+            {
+              "name": "rule_name",
+              "value": "={{ $json._source.rule?.name || $json._source.message || 'No rule' }}"
+            },
+            {
+              "name": "source_ip",
+              "value": "={{ $json._source.source?.ip || 'N/A' }}"
+            },
+            {
+              "name": "dest_ip",
+              "value": "={{ $json._source.destination?.ip || 'N/A' }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json._source.message || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract",
+      "name": "Extract Alert Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [880, -50]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "critical",
+              "leftValue": "={{ $json.severity }}",
+              "rightValue": "critical",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-critical",
+      "name": "Is Critical?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, -50]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-incidents/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@timestamp\": \"{{ $now.toISO() }}\",\n  \"incident\": {\n    \"id\": \"INC-{{ $now.format('yyyyMMdd-HHmmss') }}\",\n    \"status\": \"open\",\n    \"priority\": \"critical\",\n    \"escalated\": true\n  },\n  \"alert\": {\n    \"id\": \"{{ $json.alert_id }}\",\n    \"source\": \"{{ $json.source }}\",\n    \"rule_name\": \"{{ $json.rule_name }}\",\n    \"severity\": \"{{ $json.severity }}\"\n  },\n  \"source\": {\n    \"ip\": \"{{ $json.source_ip }}\"\n  },\n  \"destination\": {\n    \"ip\": \"{{ $json.dest_ip }}\"\n  },\n  \"message\": \"{{ $json.message }}\",\n  \"labsoc\": {\n    \"source\": \"n8n\",\n    \"workflow\": \"alert-monitor\",\n    \"action\": \"escalate\"\n  }\n}",
+        "options": {}
+      },
+      "id": "create-incident",
+      "name": "Create Incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, -100],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "elastic-creds",
+          "name": "Elasticsearch"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://elasticsearch:9200/labsoc-processed/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@timestamp\": \"{{ $now.toISO() }}\",\n  \"alert\": {\n    \"id\": \"{{ $json.alert_id }}\",\n    \"source\": \"{{ $json.source }}\",\n    \"rule_name\": \"{{ $json.rule_name }}\",\n    \"severity\": \"{{ $json.severity }}\"\n  },\n  \"source\": {\n    \"ip\": \"{{ $json.source_ip }}\"\n  },\n  \"destination\": {\n    \"ip\": \"{{ $json.dest_ip }}\"\n  },\n  \"message\": \"{{ $json.message }}\",\n  \"labsoc\": {\n    \"source\": \"n8n\",\n    \"workflow\": \"alert-monitor\",\n    \"action\": \"logged\",\n    \"triage_status\": \"reviewed\"\n  }\n}",
+        "options": {}
+      },
+      "id": "log-alert",
+      "name": "Log Processed Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 50],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "elastic-creds",
+          "name": "Elasticsearch"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-alerts",
+      "name": "No New Alerts",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [660, 100]
+    }
+  ],
+  "connections": {
+    "Check Alerts Every 5 Min": {
+      "main": [
+        [
+          {
+            "node": "Query New Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query New Alerts": {
+      "main": [
+        [
+          {
+            "node": "Has New Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Split Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Alerts": {
+      "main": [
+        [
+          {
+            "node": "Extract Alert Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Alert Fields": {
+      "main": [
+        [
+          {
+            "node": "Is Critical?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Critical?": {
+      "main": [
+        [
+          {
+            "node": "Create Incident",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Processed Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["labsoc", "siem", "alerts"],
+  "triggerCount": 1,
+  "active": false
+}

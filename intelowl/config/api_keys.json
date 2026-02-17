@@ -1,0 +1,22 @@
+{
+  "ABUSEIPDB_KEY": "",
+  "VIRUSTOTAL_KEY": "",
+  "OTX_KEY": "",
+  "SHODAN_KEY": "",
+  "MISP_KEY": "",
+  "MISP_URL": "",
+  "GREYNOISE_KEY": "",
+  "URLHAUS_KEY": "",
+  "MALWAREBAZAAR_KEY": "",
+  "HYBRID_ANALYSIS_KEY": "",
+  "INTEZER_KEY": "",
+  "CENSYS_API_ID": "",
+  "CENSYS_API_SECRET": "",
+  "IPINFO_KEY": "",
+  "MAXMIND_KEY": "",
+  "THREATFOX_KEY": "",
+  "SPAMHAUS_KEY": "",
+  "PHISHTANK_KEY": "",
+  "URLSCAN_KEY": "",
+  "PULSEDIVE_KEY": ""
+}

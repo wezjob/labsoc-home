@@ -1,0 +1,98 @@
+# ============================================
+# LABSOC HOME - Filebeat Configuration
+# ============================================
+
+filebeat.inputs:
+
+# Suricata EVE JSON logs
+- type: log
+  enabled: true
+  paths:
+    - /var/log/suricata/eve.json
+  json.keys_under_root: true
+  json.add_error_key: true
+  fields:
+    labsoc.source: suricata
+  fields_under_root: true
+
+# Zeek logs
+- type: log
+  enabled: true
+  paths:
+    - /var/log/zeek/current/*.log
+  exclude_files: ['\.gz$']
+  fields:
+    labsoc.source: zeek
+  fields_under_root: true
+  multiline.pattern: '^#'
+  multiline.negate: true
+  multiline.match: after
+
+# General logs
+- type: log
+  enabled: true
+  paths:
+    - /var/log/labsoc/*.log
+  fields:
+    labsoc.source: general
+  fields_under_root: true
+
+# Docker container logs
+- type: container
+  enabled: true
+  paths:
+    - '/var/lib/docker/containers/*/*.log'
+  processors:
+    - add_docker_metadata:
+        host: "unix:///var/run/docker.sock"
+
+# ============================================
+# Processors
+# ============================================
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - decode_json_fields:
+      fields: ["message"]
+      target: ""
+      overwrite_keys: true
+      add_error_key: true
+      when:
+        regexp:
+          message: "^{"
+
+# ============================================
+# Output to Elasticsearch
+# ============================================
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  username: "elastic"
+  password: "${ELASTIC_PASSWORD}"
+  index: "labsoc-filebeat-%{+yyyy.MM.dd}"
+
+# ============================================
+# Setup
+# ============================================
+setup.template.name: "labsoc-filebeat"
+setup.template.pattern: "labsoc-filebeat-*"
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 0
+
+setup.kibana:
+  host: "http://kibana:5601"
+  username: "elastic"
+  password: "${ELASTIC_PASSWORD}"
+
+# ============================================
+# Logging
+# ============================================
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0640

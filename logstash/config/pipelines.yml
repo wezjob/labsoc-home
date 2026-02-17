@@ -1,0 +1,19 @@
+# ============================================
+# LABSOC HOME - Logstash Pipelines
+# ============================================
+
+# Main pipeline for Beats input
+- pipeline.id: main
+  path.config: "/usr/share/logstash/pipeline/main.conf"
+
+# Suricata EVE JSON logs
+- pipeline.id: suricata
+  path.config: "/usr/share/logstash/pipeline/suricata.conf"
+
+# Zeek logs
+- pipeline.id: zeek
+  path.config: "/usr/share/logstash/pipeline/zeek.conf"
+
+# Syslog input
+- pipeline.id: syslog
+  path.config: "/usr/share/logstash/pipeline/syslog.conf"

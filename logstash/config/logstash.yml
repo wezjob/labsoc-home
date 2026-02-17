@@ -1,0 +1,34 @@
+# ============================================
+# LABSOC HOME - Logstash Configuration
+# ============================================
+
+# Node identity
+node.name: labsoc-logstash
+
+# Paths
+path.data: /usr/share/logstash/data
+path.logs: /usr/share/logstash/logs
+
+# Pipeline
+pipeline.workers: 2
+pipeline.batch.size: 125
+pipeline.batch.delay: 50
+
+# API
+api.enabled: true
+api.http.host: "0.0.0.0"
+api.http.port: 9600
+
+# Monitoring
+monitoring.enabled: false
+
+# Logging
+log.level: info
+log.format: plain
+
+# Dead letter queue
+dead_letter_queue.enable: false
+
+# Config reload
+config.reload.automatic: true
+config.reload.interval: 3s

@@ -1,0 +1,118 @@
+# ============================================
+# LABSOC HOME - Auditbeat Configuration
+# Host-based Intrusion Detection (HIDS)
+# ============================================
+
+# ============================================
+# Auditbeat Modules
+# ============================================
+
+auditbeat.modules:
+
+# --------------------------------------------
+# File Integrity Monitoring (FIM)
+# --------------------------------------------
+- module: file_integrity
+  paths:
+    # Critical system files
+    - /etc
+    - /usr/bin
+    - /usr/sbin
+    - /usr/local/bin
+    - /opt/homebrew/bin
+    # User home directory sensitive files
+    - ${HOME}/.ssh
+    - ${HOME}/.aws
+    - ${HOME}/.kube
+    - ${HOME}/.gnupg
+    # Application configurations
+    - /Applications
+  exclude_files:
+    - '(?i)\.ds_store$'
+    - '(?i)\.localized$'
+    - '\.swp$'
+    - '~$'
+  scan_at_start: true
+  scan_rate_per_sec: 50 MiB
+  max_file_size: 100 MiB
+  hash_types: [sha256]
+  recursive: true
+
+# --------------------------------------------
+# System Monitoring (macOS compatible)
+# --------------------------------------------
+- module: system
+  datasets:
+    - host           # Host info (uptime, boot time)
+    - package        # Installed packages
+    - process        # Running processes
+    # Note: login, socket, user datasets are Linux-only
+  period: 60s
+  
+  # Process monitoring
+  state.period: 12h
+
+# ============================================
+# Processors
+# ============================================
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_fields:
+      target: labsoc
+      fields:
+        source: auditbeat
+        host_type: endpoint
+  - drop_fields:
+      fields: ["agent.ephemeral_id"]
+      ignore_missing: true
+
+# ============================================
+# Output to Logstash
+# ============================================
+output.logstash:
+  hosts: ["localhost:5044"]
+  ssl.enabled: false
+
+# Alternative: Direct to Elasticsearch
+#output.elasticsearch:
+#  hosts: ["http://localhost:9200"]
+#  username: "elastic"
+#  password: "LabSoc2026!"
+#  index: "labsoc-auditbeat-%{+yyyy.MM.dd}"
+
+# ============================================
+# Kibana Setup
+# ============================================
+setup.kibana:
+  host: "http://localhost:5601"
+  username: "elastic"
+  password: "LabSoc2026!"
+
+setup.dashboards.enabled: true
+setup.template.name: "labsoc-auditbeat"
+setup.template.pattern: "labsoc-auditbeat-*"
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 0
+
+# ============================================
+# Logging
+# ============================================
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /opt/homebrew/var/log/auditbeat
+  name: auditbeat
+  keepfiles: 7
+  permissions: 0640
+
+# ============================================
+# Monitoring (internal metrics)
+# ============================================
+monitoring.enabled: true
+monitoring.elasticsearch:
+  hosts: ["http://localhost:9200"]
+  username: "elastic"
+  password: "LabSoc2026!"

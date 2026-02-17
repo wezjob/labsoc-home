@@ -1,0 +1,188 @@
+# ============================================
+# LABSOC HOME - Docker Compose Configuration
+# ============================================
+
+services:
+  # ============================================
+  # ELASTICSEARCH - Search & Analytics Engine
+  # ============================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: labsoc-elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=labsoc-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=true
+      - xpack.security.enrollment.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - labsoc-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD:-changeme} http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================
+  # LOGSTASH - Data Pipeline
+  # ============================================
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: labsoc-logstash
+    environment:
+      - "LS_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+      - ./logstash/config/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"
+      - "5514:5000/tcp"
+      - "5514:5000/udp"
+      - "9600:9600"
+    networks:
+      - labsoc-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================
+  # KIBANA - Visualization & Dashboards
+  # ============================================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: labsoc-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD:-changeme}
+      - XPACK_SECURITY_ENABLED=true
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - labsoc-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================
+  # FILEBEAT - Log Shipper
+  # ============================================
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: labsoc-filebeat
+    user: root
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+    volumes:
+      - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./logs:/var/log/labsoc:ro
+      # Native Suricata/Zeek logs from macOS Homebrew installation
+      - /opt/homebrew/var/log/suricata:/var/log/suricata:ro
+      - /opt/homebrew/var/log/zeek:/var/log/zeek:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - labsoc-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================
+  # SURICATA & ZEEK - Installed natively via Homebrew
+  # ============================================
+  # On macOS, Suricata and Zeek don't work in Docker for live capture.
+  # They are installed natively via Homebrew:
+  #   - suricata: /opt/homebrew/bin/suricata
+  #   - zeek: /opt/homebrew/bin/zeek
+  #
+  # Use these scripts to run them:
+  #   - ./scripts/start-suricata.sh [interface]
+  #   - ./scripts/start-zeek.sh [interface]
+  #   - ./scripts/analyze-pcap-suricata.sh <pcap_file>
+  #   - ./scripts/analyze-pcap-zeek.sh <pcap_file>
+  # ============================================
+
+  # ============================================
+  # N8N - Workflow Automation (SOAR)
+  # ============================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: labsoc-n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/Paris
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+    ports:
+      - "5678:5678"
+    networks:
+      - labsoc-network
+    restart: unless-stopped
+
+  # ============================================
+  # REDIS - Cache for various services
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: labsoc-redis
+    volumes:
+      - ./redis/data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - labsoc-network
+    restart: unless-stopped
+
+  # ============================================
+  # POSTGRES - Database for IntelOwl
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: labsoc-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-labsoc}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=labsoc
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - labsoc-network
+    restart: unless-stopped
+
+# ============================================
+# NETWORKS
+# ============================================
+networks:
+  labsoc-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
