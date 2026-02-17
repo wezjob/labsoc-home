@@ -1,0 +1,79 @@
+{
+  "name": "ELK-IRIS v3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "elk-iris-v3",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wh1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "elk-iris-v3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://host.docker.internal:8443/manage/cases/add",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "case_name",
+              "value": "={{ '[' + $json.body.severity.toUpperCase() + '] ' + $json.body.rule_name }}"
+            },
+            {
+              "name": "case_description",
+              "value": "={{ 'Source IP: ' + $json.body.src_ip + ' | Dest IP: ' + $json.body.dest_ip + ' | MITRE: ' + $json.body.mitre.technique }}"
+            },
+            {
+              "name": "case_customer",
+              "value": "1"
+            },
+            {
+              "name": "case_soc_id",
+              "value": "={{ 'ELK-' + Date.now() }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "id": "http1",
+      "name": "Create Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iris-api",
+          "name": "IRIS API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

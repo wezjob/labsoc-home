@@ -1,0 +1,61 @@
+{
+  "name": "ELK-IRIS Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "elk-iris-simple",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wh1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "elk-iris-simple"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://host.docker.internal:8443/manage/cases/add",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"case_name\": \"[{{ $json.severity }}] {{ $json.rule_name }}\",\n  \"case_description\": \"Alert from ELK. Source: {{ $json.src_ip }}, Dest: {{ $json.dest_ip }}\",\n  \"case_customer\": 1,\n  \"case_soc_id\": \"ELK-{{ Date.now() }}\"\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "id": "http1",
+      "name": "Create Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iris-api",
+          "name": "IRIS API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

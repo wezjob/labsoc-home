@@ -4,14 +4,12 @@
 # https://github.com/dfir-iris/iris-web
 # ============================================================================
 
-version: '3.8'
-
 services:
   # ==========================================================================
   # IRIS Web Application
   # ==========================================================================
   iris-web:
-    image: ghcr.io/dfir-iris/iriswebapp_app:v2.4.9
+    image: dfiriris/iriswebapp_app:v2.4.7
     container_name: iris-web
     restart: unless-stopped
     environment:
@@ -105,7 +103,7 @@ services:
   # IRIS Worker (Celery background tasks)
   # ==========================================================================
   iris-worker:
-    image: ghcr.io/dfir-iris/iriswebapp_worker:v2.4.9
+    image: dfiriris/iriswebapp_worker:v2.4.7
     container_name: iris-worker
     restart: unless-stopped
     environment:
@@ -130,7 +128,7 @@ services:
   # IRIS Nginx Reverse Proxy
   # ==========================================================================
   iris-nginx:
-    image: ghcr.io/dfir-iris/iriswebapp_nginx:v2.4.9
+    image: dfiriris/iriswebapp_nginx:v2.4.7
     container_name: iris-nginx
     restart: unless-stopped
     environment:

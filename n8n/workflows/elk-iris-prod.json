@@ -1,0 +1,109 @@
+{
+  "name": "ELK-IRIS Production",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "elk-iris-prod",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wh1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "elk-iris-prod"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "case_name",
+              "name": "case_name",
+              "value": "={{ '[' + ($json.severity || 'HIGH').toUpperCase() + '] ' + ($json.rule_name || $json.alert?.signature || 'Security Alert') }}",
+              "type": "string"
+            },
+            {
+              "id": "case_description",
+              "name": "case_description",
+              "value": "={{ 'Alert from ELK Stack\\n\\nSource IP: ' + ($json.src_ip || $json.source_ip || 'N/A') + '\\nDestination IP: ' + ($json.dest_ip || $json.destination_ip || 'N/A') + '\\nMITRE Technique: ' + ($json.mitre?.technique || 'N/A') + '\\nMITRE Tactic: ' + ($json.mitre?.tactic || 'N/A') + '\\n\\nTimestamp: ' + ($json['@timestamp'] || new Date().toISOString()) }}",
+              "type": "string"
+            },
+            {
+              "id": "case_customer",
+              "name": "case_customer",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "case_soc_id",
+              "name": "case_soc_id",
+              "value": "={{ 'ELK-' + Date.now() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set1",
+      "name": "Prepare Case Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://host.docker.internal:8443/manage/cases/add",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "id": "http1",
+      "name": "Create IRIS Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iris-api",
+          "name": "IRIS API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Case Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Case Data": {
+      "main": [
+        [
+          {
+            "node": "Create IRIS Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

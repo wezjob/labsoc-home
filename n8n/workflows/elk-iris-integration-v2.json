@@ -1,0 +1,152 @@
+{
+  "name": "LabSOC - ELK to IRIS v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "elk-iris",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-elk",
+      "name": "ELK Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "elk-iris-v2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "sev-crit",
+              "leftValue": "={{ $json.severity }}",
+              "rightValue": "critical",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "sev-high",
+              "leftValue": "={{ $json.severity }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        }
+      },
+      "id": "filter-severity",
+      "name": "Filter Severity",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://host.docker.internal:8443/manage/cases/add",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"case_name\": `[${$json.severity?.toUpperCase() || 'HIGH'}] ${$json.rule_name || 'Security Alert'}`,\n  \"case_description\": `Alert from ELK\\n\\nSource IP: ${$json.src_ip || 'N/A'}\\nDest IP: ${$json.dest_ip || 'N/A'}\\nMITRE: ${$json.mitre?.technique || 'N/A'}\\n\\nRaw: ${JSON.stringify($json)}`,\n  \"case_customer\": 1,\n  \"case_soc_id\": `ELK-${Date.now()}`\n} }}",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 30000
+        }
+      },
+      "id": "create-case",
+      "name": "Create IRIS Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [620, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iris-api",
+          "name": "IRIS API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'success', case_id: $json.data?.case_id, message: 'Case created in IRIS' } }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'skipped', message: 'Alert severity below threshold' } }}"
+      },
+      "id": "respond-skip",
+      "name": "Respond Skip",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [620, 500]
+    }
+  ],
+  "connections": {
+    "ELK Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Severity": {
+      "main": [
+        [
+          {
+            "node": "Create IRIS Case",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create IRIS Case": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateId": "elk-iris-v2"
+  }
+}

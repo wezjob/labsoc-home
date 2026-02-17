@@ -18,15 +18,24 @@
       "parameters": {
         "conditions": {
           "options": {
-            "caseSensitive": true,
+            "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
               "id": "severity-check",
               "leftValue": "={{ $json.severity }}",
               "rightValue": "critical",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "severity-check-high",
+              "leftValue": "={{ $json.severity }}",
+              "rightValue": "high",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -57,7 +66,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://localhost:8443/case/add",
+        "url": "https://host.docker.internal:8443/manage/cases/add",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -94,7 +103,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://localhost:8443/case/ioc/add/{{ $json.case_id }}",
+        "url": "=https://host.docker.internal:8443/manage/ioc/add/{{ $json.case_id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
