@@ -1,0 +1,662 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en">
+  <head>
+    <title>CapLoader - Search, sort, filter and extract flows from PCAP files</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <meta property="og:title" content="CapLoader - Search, sort, filter and extract flows from PCAP files" />
+    <meta property="og:site_name" content="Netresec" />
+    <meta property="og:type" content="article" />
+    <meta http-equiv="Content-Language" content="en" />
+    <meta name="msapplication-starturl" content="https://www.netresec.com" />
+    <meta name="description" content="Cap Loader handles large PCAP files fast! CapLoader is great for quickly extracting individual flows or sessions from multiple pcap files. CapLoader can also identify the application layer protocol of a flow without relying on the port number." />
+    <meta property="og:description" content="Cap Loader handles large PCAP files fast! CapLoader is great for quickly extracting individual flows or sessions from multiple pcap files. CapLoader can also identify the application layer protocol of a flow without relying on the port number." />
+    <meta name="keywords" content="CapLoader, Cap Loader, pcap, network, traffic, big, data, flow, tcp, udp, split, carve, libpcap, slice, windows, gui, fast, quick, large, protocol identification, classification, dynamic, indexing" />
+    <link rel="icon" sizes="192x192" href="/favicon-192x192.png" />
+    <link rel="icon" sizes="144x144" href="/favicon-144x144.png" />
+    <link rel="icon" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <meta name="msapplication-TileImage" content="/images/netresec_logo_144x144.png" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta name="viewport" content="width=850, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+    <link rel="alternate" type="application/rss+xml" title="NETRESEC Network Security Blog" href="https://www.netresec.com/rss.ashx" />
+    <link rel="canonical" href="https://www.netresec.com/?page=CapLoader" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@netresec" />
+    <meta name="twitter:creator" content="@netresec" />
+    <meta name="twitter:title" content="CapLoader - Search, sort, filter and extract flows from PCAP files" />
+    <meta name="twitter:description" content="Cap Loader handles large PCAP files fast! CapLoader is great for quickly extracting individual flows or sessions from multiple pcap files. CapLoader can also identify the application layer protocol of a flow without relying on the port number." />
+    <meta name="fediverse:creator" content="@netresec@infosec.exchange" />
+    <meta name="twitter:image" content="https://www.netresec.com/images/CapLoader_Logo_313x313.png" />
+    <meta property="og:image" content="https://www.netresec.com/images/CapLoader_Logo_313x313.png" />
+    <script type="application/ld+json">{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "CapLoader",
+  "image": [
+    "https://www.netresec.com/images/CapLoader_USB_446x220.png",
+    "https://www.netresec.com/images/CapLoader_Logo_313x313.png",
+    "https://www.netresec.com/images/CapLoader_Services_Periodic-Hancitor-CobaltStrike_520x485.png"
+  ],
+  "description": "CapLoader is a Windows tool designed to handle large amounts of captured network traffic.",
+  "brand": {
+    "@type": "Brand",
+    "name": "Netresec"
+  },
+  "sku": "2",
+  "mpn": "2",
+  "offers": {
+    "@type": "Offer",
+    "url": "https://www.netresec.com/?page=BuyCapLoader",
+    "priceCurrency": "USD",
+    "price": "1300.00",
+    "itemCondition": "https://schema.org/NewCondition",
+    "availability": "https://schema.org/InStock"
+  }
+}</script>
+  </head>
+  <body>
+    <div class="middle">
+      <div id="pageHeader" style="min-height: 144px;">
+        <header>
+          <span style="align: right; float: right; vertical-align: top;">Experts in network security monitoring and network forensics</span>
+          <a href="https://www.netresec.com/">
+            <img src="/images/Netresec_Logo_550x140.png" width="275" height="70" alt="Netresec" style="margin-left: 16px" />
+          </a>
+        </header>
+        <nav>
+          <span>
+            <a href="/?page=Home">NETRESEC</a>|</span>
+          <span>
+            <a href="/?page=Products">Products</a>|</span>
+          <span>
+            <a href="/?page=Training">Training</a>|</span>
+          <span>
+            <a href="/?page=Resources">Resources</a>|</span>
+          <span>
+            <a href="/?page=Blog">Blog</a>|</span>
+          <span>
+            <a href="/?page=AboutNetresec">About Netresec</a>
+          </span>
+        </nav>
+        <span class="path">
+          <a href="/">NETRESEC</a>
+    »
+    <a href="/?page=Products">Products</a>
+    »
+    <a href="/?page=CapLoader">CapLoader</a></span>
+      </div>
+      <div id="pageBody">
+        <img src="/images/CapLoader_Logo_313x313.png" alt="CapLoader logo" style="float: right; margin: 20px;" width="313" height="313" />
+        <h1>CapLoader</h1>
+        <p>
+      CapLoader is a Windows tool designed to handle large amounts of captured network traffic.
+      CapLoader performs indexing of PCAP/PcapNG files and visualizes their contents as a list of TCP and UDP flows.
+      Users can select the flows of interest and quickly filter out those packets from the loaded PCAP files.
+      Sending the selected flows/packets to a packet analyzer tool like Wireshark or NetworkMiner is
+      then just a mouse click away.
+    </p>
+        <p>
+      CapLoader is the ideal tool if you're working with large PCAP files or datasets consisting of many PCAP files.
+      The contents of individual flows can be exported to tools like Wireshark and NetworkMiner in just a matter of seconds after having loaded one or multiple large PCAP files.
+    </p>
+        <p>
+      »
+      <b><a href="/?page=BuyCapLoader">How To Buy CapLoader</a></b>
+      «
+    </p>
+        <p>
+      »
+      <b><a href="#trial">Download Free Trial</a></b>
+      «
+    </p>
+        <a href="/?page=TrainingIR" class="sfdl sfdl-lite" style="margin: 20px;">Next live online network forensics training: February 23-26, 2026</a>
+        <h2 style="clear: both;">Video Tutorials</h2>
+        <video width="780" height="585" controls="true" preload="none" poster="https://www.netresec.com/images/network-forensics-tutorial-poster-kelihos_512x384.png" clip="network-forensics-tutorial-kelihos-emails_1152x864">
+          <source src="https://media.netresec.com/videos/network-forensics-tutorial-kelihos-emails_1152x864.webm" type="video/webm" />
+          <source src="https://media.netresec.com/videos/network-forensics-tutorial-kelihos-emails_1152x864.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+        <p>
+          <i>
+        Video tutorial from our blog post "<a href="https://netresec.com/?b=182053B">Analyzing Kelihos SPAM in CapLoader and NetworkMiner</a>".
+      </i>
+        </p>
+        <video width="780" height="439" controls="true" preload="none" poster="https://www.netresec.com/images/Hunting-for-Cobalt-Strike-in-PCAP_512x288.png" clip="Hunting-for-Cobalt-Strike-in-PCAP_1280x720">
+          <source src="https://media.netresec.com/videos/Hunting-for-Cobalt-Strike-in-PCAP_1280x720.webm" type="video/webm" />
+          <source src="https://media.netresec.com/videos/Hunting-for-Cobalt-Strike-in-PCAP_1280x720.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+        <p>
+          <i>
+        Video tutorial from our blog post "<a href="https://netresec.com/?b=2410f02">Hunting for Cobalt Strike in PCAP</a>".
+      </i>
+        </p>
+        <video width="780" height="434" controls="true" preload="none" poster="https://www.netresec.com/images/Detecting-Cobalt-Strike-and-Hancitor-traffic-in-PCAP_512x289.png" clip="network-forensics-tutorial-kelihos-emails_1152x864">
+          <source src="https://media.netresec.com/videos/Detecting-Cobalt-Strike-and-Hancitor-traffic-in-PCAP_1376x776.webm" type="video/webm" />
+          <source src="https://media.netresec.com/videos/Detecting-Cobalt-Strike-and-Hancitor-traffic-in-PCAP_1376x776.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+        <p>
+          <i>
+        Video tutorial from our blog post "<a href="https://netresec.com/?b=21536fc">Detecting Cobalt Strike and Hancitor traffic in PCAP</a>".
+      </i>
+        </p>
+        <h2 style="clear: both;">Usage</h2>
+        <p>
+      The typical process of working with CapLoader is:
+      <ol style="width: 560px;"><li style="clear: both; margin: 10px;">
+          Open one or multiple pcap files, typically by drag-and-dropping them onto the CapLoader GUI. <br /><img src="/images/CapLoader_1-0_Load_drag-and-drop_501x209.png" alt="CapLoader loading a pcap file with drag-and-drop" style="margin: 10px;" border="0" width="501" height="209" /></li><li style="clear: both; margin: 10px;">
+          Select/mark the flows of interest.<br /><img src="/images/CapLoader_1-0_Select_flows_501x209.png" alt="CapLoader selecting flows / sessions" style="margin: 10px;" border="0" width="501" height="209" /></li><li style="clear: both; margin: 10px;">
+          Double click the PCAP-icon to open the selected sessions in your default pcap parser (typically Wireshark) or better yet, do drag-and-drop from the PCAP-icon to any application you wish.<br /><img src="/images/CapLoader_1-0_Export_drag-and-drop_to_NetworkMiner_502x208.png" alt="CapLoader exporting packets to NetworkMiner" style="margin: 10px;" border="0" width="502" height="208" /></li></ol>
+      For more details on how to use CapLoader, please see our <a href="https://www.youtube.com/watch?v=n1Ir9Hedca4&amp;hd=1">CapLoader video tutorial</a>.
+      You can also have a look at our <a href="https://www.netresec.com/?page=Blog&amp;tag=CapLoader">blog posts about CapLoader</a> to learn more about
+      how to use CapLoader and what new features that are being added to this powerful tool.
+    </p>
+        <h2>Built-in Protocol Identification</h2>
+        <p>
+      CapLoader includes the ability to identify protocols without relying on port numbers (a feature often referred to as “traffic classification”).
+      This feature can be enabled by checking the “Identify protocols” check-box in the GUI.
+      Loading PCAP files with the “identify protocols” feature enabled will cause
+      the application layer protocols of the extracted flows to be identified and displayed in the flow list.
+      Being able to identify the application layer protocol is important in order to detect what services
+      that run on non-standard ports as well as to detect if common ports are being used to
+      transport other protocols than what might be expected.
+    </p>
+        <p>
+      The dynamic protocol identification feature allows for detection of over 100 protocols and sub-protocols.
+      The identified protocols include Skype, IRC, FTP and SSH,
+      <a href="https://en.wikipedia.org/wiki/Microsoft_RPC">MS-RPC</a>, <a href="https://attack.mitre.org/software/S0012/" rel="nofollow">Poison Ivy RAT</a>
+      as well as several P2P and CardSharing protocols.
+    </p>
+        <p>
+      Read our
+      <a href="https://www.netresec.com/?page=Blog&amp;month=2015-10&amp;post=Port-Independent-Protocol-Detection">Port Independent Protocol Detection</a>
+      blog post for more details on the protocol detection feature built into CapLoader.
+    </p>
+        <p style="text-align: center;">
+          <img src="/images/CapLoader_1-0_Protocol_Identification_Honeynet_SOTM-28_day1-log.png" alt="CapLoader showing port independent identification of protocols" width="623" height="432" />
+          <br />
+          <i>CapLoader showing port independent identification of protocols</i>
+        </p>
+        <h2>Network Packet Carving</h2>
+        <p>
+      CapLoader has the ability to
+      <a href="https://netresec.com/?b=218cf94">carve network packets</a>
+      from any file and save them in the PCAP-NG format.
+      This fusion between memory forensics and network forensics makes it possible to extract sent and received IP frames,
+      with complete payload, from RAM dumps as well as from raw disk images.
+      CapLoader basically carves any TCP or UDP packet that is preceded by an IP frame (both IPv4 and IPv6 are supported).
+    </p>
+        <p style="text-align: center;">
+          <img src="/images/CapLoader_1-2_Carving_Bob-vmem_516x365.png" alt="CapLoader 1.2 Carving Packets from HoneyNet Memory Image" border="0" style="clear: both;" width="516" height="365" />
+          <br />
+          <i>CapLoader 1.2 Carving Packets from HoneyNet Memory Image</i>
+        </p>
+        <a name="trial">
+          <h2>Try or Buy CapLoader</h2>
+        </a>
+        <p>
+          <table class="bordered" style="clear: both;">
+            <tr>
+              <td style="background-color: #ffffff; border: none;" />
+              <th>CapLoader Trial</th>
+              <th>CapLoader (professional edition)</th>
+            </tr>
+            <tr>
+              <td>License Validity Period</td>
+              <td>
+            30 Days
+          </td>
+              <td>
+            3 Years
+          </td>
+            </tr>
+            <tr>
+              <td>Max PCAP Data Size</td>
+              <td>
+            5 GB
+          </td>
+              <td>
+            No limit
+          </td>
+            </tr>
+            <tr>
+              <td>
+            Reads <a href="https://pcapng.com">PcapNG</a> Files
+          </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+            Reads <a href="https://netresec.com/?b=21B0d0e">ETL</a> Files
+          </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+            IPv6 Support
+          </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2013-01&amp;post=Analyzing-85-GB-of-PCAP-in-2-hours">Flow Transcript View</a>
+                <br />
+            (a.k.a Follow TCP/UDP Stream)
+          </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=182053b">Indexing of Flows</a> for Fast Extraction
+          </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2022-06&amp;post=CapLoader-1-9-4-Released">VXLAN Parser</a>
+              </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>Hostname extraction from DNS</td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>Hostname extraction from TLS</td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2022-06&amp;post=CapLoader-1-9-4-Released">Extract JA3 and JA3S</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=23B6bcd">Extract JA4 fingerprints</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=17ABA35">Initial Round Trip Time</a> calculation
+          </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=15914E3">Top 1M Main Domain Lookup</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=17ABA35">Top 1M FQDN Lookup</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2015-10&amp;post=Port-Independent-Protocol-Detection">
+              Port Independent<br />
+              Protocol Identification (PIPI)
+            </a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2025-08&amp;post=Define-Protocol-from-Traffic-XenoRAT">Define Protocol from Traffic</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2022-06&amp;post=CapLoader-1-9-4-Released">Select Similar Flows</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2023-02&amp;post=CapLoader-1-9-5-Alerts-on-Malicious-Traffic">Alert on Malicious Protocol</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://www.netresec.com/?page=Blog&amp;month=2023-02&amp;post=CapLoader-1-9-5-Alerts-on-Malicious-Traffic">Alert on Port-protocol Mismatch</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+            Alert on Periodic Connections
+          </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>Offline IP-to-Country lookup</td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=17ABA35">Offline IP ASN lookup</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=1878305">OSINT lookup of IP's and domains</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=143B7EE">Network Packet Carving</a>
+              </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=1447A3D">Keyword String Search</a>
+              </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=187E291">Regular Expression (regex) Search</a>
+              </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=15B2F44">Input Filter (BPF)</a>
+              </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>Hide Flows in GUI</td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=15B2F44">Display Filter (BPF)</a>
+              </td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>Keyword Filter</td>
+              <td>
+            ✅
+          </td>
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+            Select Flows from Log file
+          </td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>Select Flows from PCAP file</td>
+              <td />
+              <td>
+            ✅
+          </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://netresec.com/?b=165BF7D">Detection of Periodic Connections</a>
+              </td>
+              <td>✅</td>
+              <td>✅</td>
+            </tr>
+            <tr>
+              <td>Wireshark style Coloring</td>
+              <td />
+              <td>✅</td>
+            </tr>
+            <tr>
+              <th>Price</th>
+              <td>Free</td>
+              <td>
+            From $ 1300 USD
+          </td>
+            </tr>
+            <tr>
+              <th />
+              <td>
+                <a href="https://www.netresec.com/?download=CapLoaderTrial" class="sfdl sfdl-lite">
+                  <b>Download Free Trial</b>
+                </a>
+              </td>
+              <td>
+                <a href="/?page=BuyCapLoader" class="sfdl sfdl-lite ndl-lite">
+                  <b>Buy CapLoader</b>
+                </a>
+              </td>
+            </tr>
+          </table>
+        </p>
+        <h2>Change Log</h2>
+        <table>
+          <tr>
+            <th>Version</th>
+            <th>Date</th>
+            <th>Major Improvements</th>
+          </tr>
+          <tr>
+            <td>2.0.1</td>
+            <td>2025-07-01</td>
+            <td>
+              <a href="https://netresec.com/?b=2571527">IP lookup alert and bug fixes</a>
+            </td>
+          </tr>
+          <tr>
+            <td>2.0</td>
+            <td>2025-06-02</td>
+            <td>
+              <a href="https://netresec.com/?b=256dbbc">User-defined protocols from example traffic, QUIC parser, 10x faster user interface.</a>
+            </td>
+          </tr>
+          <tr>
+            <td>1.9.7</td>
+            <td>2024-09-06</td>
+            <td>
+              <a href="https://netresec.com/?b=2499359">Community ID and retransmissions columns, improved protocol detection and more decapsulated protcols.</a>
+            </td>
+          </tr>
+          <tr>
+            <td>1.9.6</td>
+            <td>2023-11-16</td>
+            <td>
+              <a href="https://netresec.com/?b=23B6bcd">Integration with ThreatFox and JA4 fingerprints</a>.
+        </td>
+          </tr>
+          <tr>
+            <td>1.9.5</td>
+            <td>2023-02-09</td>
+            <td>
+              <a href="https://netresec.com/?b=232e498">Alerts for malicious traffic</a>.
+        </td>
+          </tr>
+          <tr>
+            <td>1.9.4</td>
+            <td>2022-06-16</td>
+            <td>
+              <a href="https://netresec.com/?b=226917b">Extraction of JA3 and JA3S hashes, Select Similar Flows and VXLAN decapsulation</a>.
+        </td>
+          </tr>
+          <tr>
+            <td>1.9.3</td>
+            <td>2021-11-02</td>
+            <td>
+              <a href="https://netresec.com/?b=21B0d0e">Read Windows event tracing .etl files</a>.
+        </td>
+          </tr>
+          <tr>
+            <td>1.9.2</td>
+            <td>2021-07-01</td>
+            <td>
+          Bug fixes.
+        </td>
+          </tr>
+          <tr>
+            <td>1.9.1</td>
+            <td>2021-05-27</td>
+            <td>
+          Bug fixes.
+        </td>
+          </tr>
+          <tr>
+            <td>1.9</td>
+            <td>2021-05-27</td>
+            <td>
+              <a href="https://netresec.com/?b=2159bda">Column Criteria filter, VLAN support in BPF and better periodicity detection</a>.
+        </td>
+          </tr>
+        </table>
+        <h2>Dependencies</h2>
+        <p>
+      CapLoader requires <a href="https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48">Microsoft .NET Framework 4.8</a> to be installed.
+    </p>
+      </div>
+      <footer>
+        <span>𝙽𝙴𝚃𝚁𝙴𝚂𝙴𝙲</span> |
+          <span><a href="/?page=AboutNetresec">Contact</a></span>
+          |
+          <span><a href="/?page=Privacy">Privacy</a></span>
+          |
+          <span><a rel="me" href="https://infosec.exchange/@netresec">Mastodon</a></span>
+          |
+          <span><a rel="me" href="https://bsky.app/profile/netresec.com">Bluesky</a></span>
+          |
+          <span><a rel="nofollow me" href="https://x.com/netresec">𝕏</a></span>
+          |
+          <span><a href="https://www.netresec.com/rss.ashx">RSS</a></span></footer>
+    </div>
+  </body>
+</html>

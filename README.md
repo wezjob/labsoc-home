@@ -67,7 +67,29 @@ LabSOC Home est une infrastructure SOC complète déployable sur macOS avec Dock
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Installation
+## � Captures d'écran
+
+### Dashboard Kibana
+![Kibana Dashboard](docs/images/kibana.png)
+
+### Logs Suricata (IDS)
+![Logs Suricata](docs/images/logs-suricata.png)
+
+### Logs Zeek (Network Analysis)
+![Logs Zeek](docs/images/logs-zeek.png)
+
+### IRIS DFIR - Gestion d'incidents
+![IRIS DFIR](docs/images/IRIS.png)
+
+### Workflow n8n - Alertes Automatisées
+![Workflow n8n Alertes](docs/images/workflow-alerte-n8n.png)
+
+### Workflow n8n - Intégration IRIS
+![Workflow n8n IRIS](docs/images/workflow-iris-n8n.png)
+
+---
+
+## �🚀 Installation
 
 ### Prérequis
 
