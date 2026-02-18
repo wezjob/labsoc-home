@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "🔵 LABSOC HOME - Starting Security Operations Center..."
+echo "🔵 SOC-in-a-Box - Starting Security Operations Center..."
 echo "=================================================="
 
 # Check if Docker is running
@@ -101,7 +101,7 @@ curl -s -X PUT -u elastic:${ELASTIC_PASSWORD:-LabSoc2026!} \
 
 echo ""
 echo "=================================================="
-echo "✅ LABSOC HOME is ready!"
+echo "✅ SOC-in-a-Box is ready!"
 echo "=================================================="
 echo ""
 echo "📊 Access your services:"

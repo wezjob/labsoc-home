@@ -1,29 +1,36 @@
-# 🛡️ LabSOC Home
+# 🛡️ SOC-in-a-Box
 
-**Enterprise-grade Security Operations Center for Home Lab - Based on NIST Cybersecurity Framework**
+**Turnkey Open-Source Security Operations Center — Built from Real-World Experience**
 
 [![NIST CSF](https://img.shields.io/badge/Framework-NIST_CSF-blue)](https://www.nist.gov/cyberframework)
 [![ELK Stack](https://img.shields.io/badge/ELK-8.11.0-blue)](https://www.elastic.co/)
-[![Wazuh](https://img.shields.io/badge/Wazuh-4.7.0-brightgreen)](https://wazuh.com/)
-[![MISP](https://img.shields.io/badge/MISP-ThreatIntel-orange)](https://www.misp-project.org/)
-[![OpenCTI](https://img.shields.io/badge/OpenCTI-6.0-red)](https://www.opencti.io/)
 [![IRIS DFIR](https://img.shields.io/badge/IRIS-DFIR-purple)](https://dfir-iris.org/)
-[![Velociraptor](https://img.shields.io/badge/Velociraptor-IR-green)](https://docs.velociraptor.app/)
+[![n8n SOAR](https://img.shields.io/badge/n8n-SOAR-orange)](https://n8n.io/)
+[![Grafana](https://img.shields.io/badge/Grafana-Observability-yellow)](https://grafana.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)](https://docker.com/)
+[![Open Source](https://img.shields.io/badge/100%25-Open_Source-brightgreen)](https://opensource.org/)
 
 ---
 
 ## 📋 Overview
 
-LabSOC Home is a **modular, production-ready SOC infrastructure** organized according to the **NIST Cybersecurity Framework**. Deploy only what you need, scale as you grow.
+**SOC-in-a-Box** is a **turnkey, 100% open-source SOC platform** designed to simplify security operations deployment. Born from hands-on experience in cybersecurity, this project provides pre-configured detection rules, automated workflows, and incident response playbooks — ready to use out of the box.
+
+### 🎯 Why SOC-in-a-Box?
+
+- **Reduce complexity** — No more weeks of integration work
+- **Pre-configured rules** — Sigma detection rules & Prometheus alerts included
+- **Automation ready** — n8n workflows for alert triage, IOC enrichment, and IR
+- **NIST CSF aligned** — Organized by IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER
 
 ### Key Features
 
-- 🏗️ **Modular Architecture** - Enable/disable modules independently
-- 📊 **NIST Framework** - Organized by IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER
-- 🔄 **Full Integration** - All tools interconnected via APIs and webhooks
-- 🐳 **Docker-based** - Easy deployment with `make` commands
-- ⚔️ **Red Team Ready** - Built-in adversary simulation tools
+- 🏗️ **Modular Architecture** — Enable/disable modules independently
+- 📊 **NIST Framework** — Organized by IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER
+- 🔄 **Full Integration** — All tools interconnected via APIs and webhooks
+- 🐳 **Docker-based** — Easy deployment with `make` commands
+- ⚙️ **Pre-configured Rules** — Detection rules and alerts ready to use
+- 🤖 **Automation First** — n8n workflows for SOAR capabilities
 
 ---
 
@@ -31,7 +38,7 @@ LabSOC Home is a **modular, production-ready SOC infrastructure** organized acco
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         LabSOC Home                              │
+│                        SOC-in-a-Box                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐                       │

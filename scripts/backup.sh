@@ -10,7 +10,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_DIR="$PROJECT_DIR/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-echo "💾 LABSOC HOME - Creating Backup..."
+echo "💾 SOC-in-a-Box - Creating Backup..."
 echo "=================================================="
 
 # Create backup directory
