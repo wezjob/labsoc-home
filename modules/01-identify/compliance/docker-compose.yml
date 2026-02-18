@@ -1,0 +1,63 @@
+# ============================================================
+# MODULE: COMPLIANCE & GOVERNANCE
+# NIST Function: IDENTIFY (ID.GV - Governance)
+# ============================================================
+# Components: CISO Assistant
+# ============================================================
+
+services:
+  # ============================================================
+  # CISO Assistant - GRC Platform
+  # ============================================================
+  ciso-assistant-db:
+    image: postgres:15-alpine
+    container_name: labsoc-ciso-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ciso_assistant
+      POSTGRES_USER: ciso
+      POSTGRES_PASSWORD: ${CISO_DB_PASSWORD:-CisoDB2026!}
+    volumes:
+      - ciso_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ciso -d ciso_assistant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ciso-assistant:
+    image: ghcr.io/intuitem/ciso-assistant-community:latest
+    container_name: labsoc-ciso-assistant
+    restart: unless-stopped
+    depends_on:
+      ciso-assistant-db:
+        condition: service_healthy
+    environment:
+      DJANGO_SUPERUSER_EMAIL: admin@labsoc.local
+      DJANGO_SUPERUSER_PASSWORD: ${CISO_ADMIN_PASSWORD:-CisoAdmin2026!}
+      POSTGRES_NAME: ciso_assistant
+      POSTGRES_USER: ciso
+      POSTGRES_PASSWORD: ${CISO_DB_PASSWORD:-CisoDB2026!}
+      DB_HOST: ciso-assistant-db
+      ALLOWED_HOSTS: "*"
+      DJANGO_DEBUG: "False"
+    volumes:
+      - ciso_data:/app/db
+    ports:
+      - "8003:8000"  # CISO Assistant Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=compliance"
+      - "labsoc.nist=IDENTIFY"
+      - "labsoc.frameworks=NIST,ISO27001,SOC2,GDPR"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  ciso_db_data:
+  ciso_data:

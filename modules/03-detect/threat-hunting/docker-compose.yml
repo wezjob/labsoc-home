@@ -1,0 +1,178 @@
+# ============================================================
+# MODULE: THREAT HUNTING
+# NIST Function: DETECT (DE.DP - Detection Processes)
+# ============================================================
+# Components: RITA, AC-Hunter Community, Hayabusa, Chainsaw
+# ============================================================
+
+services:
+  # ============================================================
+  # RITA - Real Intelligence Threat Analytics
+  # ============================================================
+  rita-mongodb:
+    image: mongo:5
+    container_name: labsoc-rita-mongodb
+    restart: unless-stopped
+    volumes:
+      - rita_mongodb_data:/data/db
+    networks:
+      - labsoc-network
+
+  rita:
+    image: activecm/rita:latest
+    container_name: labsoc-rita
+    restart: unless-stopped
+    depends_on:
+      - rita-mongodb
+    environment:
+      - RITA_VERSION=4.8.0
+    volumes:
+      - ./rita/config.yaml:/etc/rita/config.yaml:ro
+      - rita_logs:/var/lib/rita
+      - /opt/homebrew/var/log/zeek:/zeek-logs:ro
+    entrypoint: ["tail", "-f", "/dev/null"]
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-hunting"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Hayabusa - Windows Event Log Analysis
+  # ============================================================
+  hayabusa:
+    image: ghcr.io/yamato-security/hayabusa:latest
+    container_name: labsoc-hayabusa
+    restart: unless-stopped
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - hayabusa_rules:/hayabusa/rules
+      - hayabusa_output:/output
+      - ./evtx-samples:/evtx:ro
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-hunting"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Chainsaw - Fast Windows Event Log Searcher
+  # ============================================================
+  chainsaw:
+    build:
+      context: ./chainsaw
+      dockerfile: Dockerfile
+    container_name: labsoc-chainsaw
+    restart: unless-stopped
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - chainsaw_rules:/chainsaw/sigma
+      - chainsaw_output:/output
+      - ./evtx-samples:/evtx:ro
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-hunting"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # DeepBlueCLI - PowerShell Log Analysis
+  # ============================================================
+  deepblue:
+    image: mcr.microsoft.com/powershell:latest
+    container_name: labsoc-deepblue
+    restart: unless-stopped
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - ./deepblue:/scripts
+      - deepblue_output:/output
+      - ./evtx-samples:/evtx:ro
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-hunting"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Sigma CLI - Rule Converter
+  # ============================================================
+  sigma:
+    image: python:3.11-slim
+    container_name: labsoc-sigma
+    restart: unless-stopped
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - sigma_rules:/sigma/rules
+      - sigma_output:/output
+    command: >
+      sh -c "pip install sigma-cli pysigma pysigma-backend-elasticsearch &&
+             tail -f /dev/null"
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-hunting"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # YARA Rules Scanner
+  # ============================================================
+  yara:
+    image: blacktop/yara:latest
+    container_name: labsoc-yara
+    restart: unless-stopped
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - yara_rules:/rules
+      - yara_samples:/samples
+      - yara_output:/output
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-hunting"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Thor Lite - IOC Scanner
+  # ============================================================
+  # Note: Thor Lite requires registration at Nextron Systems
+  # Download and place in ./thor directory
+
+  # ============================================================
+  # Jupyter Notebook for Hunting
+  # ============================================================
+  jupyter-hunting:
+    image: jupyter/scipy-notebook:latest
+    container_name: labsoc-jupyter-hunting
+    restart: unless-stopped
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-JupyterHunting2026!}
+    volumes:
+      - jupyter_notebooks:/home/jovyan/work
+      - ./hunting-notebooks:/home/jovyan/notebooks:ro
+    ports:
+      - "8888:8888"  # Jupyter Lab
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-hunting"
+      - "labsoc.nist=DETECT"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  rita_mongodb_data:
+  rita_logs:
+  hayabusa_rules:
+  hayabusa_output:
+  chainsaw_rules:
+  chainsaw_output:
+  deepblue_output:
+  sigma_rules:
+  sigma_output:
+  yara_rules:
+  yara_samples:
+  yara_output:
+  jupyter_notebooks:

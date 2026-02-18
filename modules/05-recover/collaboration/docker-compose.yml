@@ -1,0 +1,191 @@
+# ============================================================
+# MODULE: COLLABORATION & DOCUMENTATION
+# NIST Function: RECOVER (RC.CO - Communications)
+# ============================================================
+# Components: Wiki.js, Nextcloud, Mattermost
+# ============================================================
+
+services:
+  # ============================================================
+  # Wiki.js - Documentation Platform
+  # ============================================================
+  wikijs-db:
+    image: postgres:15-alpine
+    container_name: labsoc-wikijs-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wikijs
+      POSTGRES_USER: wikijs
+      POSTGRES_PASSWORD: ${WIKIJS_DB_PASSWORD:-WikijsDB2026!}
+    volumes:
+      - wikijs_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wikijs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wikijs:
+    image: ghcr.io/requarks/wiki:2
+    container_name: labsoc-wikijs
+    restart: unless-stopped
+    depends_on:
+      wikijs-db:
+        condition: service_healthy
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: wikijs-db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: ${WIKIJS_DB_PASSWORD:-WikijsDB2026!}
+      DB_NAME: wikijs
+    ports:
+      - "3002:3000"  # Wiki.js Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=collaboration"
+      - "labsoc.nist=RECOVER"
+
+  # ============================================================
+  # Nextcloud - File Sharing & Collaboration
+  # ============================================================
+  nextcloud-db:
+    image: mariadb:10.11
+    container_name: labsoc-nextcloud-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${NEXTCLOUD_ROOT_PASSWORD:-NextcloudRoot2026!}
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:-NextcloudDB2026!}
+    volumes:
+      - nextcloud_db_data:/var/lib/mysql
+    networks:
+      - labsoc-network
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: labsoc-nextcloud-redis
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  nextcloud:
+    image: nextcloud:latest
+    container_name: labsoc-nextcloud
+    restart: unless-stopped
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    environment:
+      MYSQL_HOST: nextcloud-db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:-NextcloudDB2026!}
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD:-NextcloudAdmin2026!}
+      REDIS_HOST: nextcloud-redis
+      NEXTCLOUD_TRUSTED_DOMAINS: "localhost nextcloud.labsoc.local"
+    volumes:
+      - nextcloud_data:/var/www/html
+      - nextcloud_config:/var/www/html/config
+      - nextcloud_custom_apps:/var/www/html/custom_apps
+      - nextcloud_themes:/var/www/html/themes
+    ports:
+      - "8081:80"  # Nextcloud Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=collaboration"
+      - "labsoc.nist=RECOVER"
+
+  # ============================================================
+  # Mattermost - Team Chat (Slack alternative)
+  # ============================================================
+  mattermost-db:
+    image: postgres:15-alpine
+    container_name: labsoc-mattermost-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mattermost
+      POSTGRES_USER: mattermost
+      POSTGRES_PASSWORD: ${MATTERMOST_DB_PASSWORD:-MattermostDB2026!}
+    volumes:
+      - mattermost_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+
+  mattermost:
+    image: mattermost/mattermost-team-edition:latest
+    container_name: labsoc-mattermost
+    restart: unless-stopped
+    depends_on:
+      - mattermost-db
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mattermost:${MATTERMOST_DB_PASSWORD:-MattermostDB2026!}@mattermost-db:5432/mattermost?sslmode=disable
+      MM_SERVICESETTINGS_SITEURL: http://localhost:8065
+    volumes:
+      - mattermost_data:/mattermost/data
+      - mattermost_logs:/mattermost/logs
+      - mattermost_config:/mattermost/config
+      - mattermost_plugins:/mattermost/plugins
+      - mattermost_client_plugins:/mattermost/client/plugins
+    ports:
+      - "8065:8065"  # Mattermost Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=collaboration"
+      - "labsoc.nist=RECOVER"
+
+  # ============================================================
+  # Excalidraw - Whiteboard for Diagrams
+  # ============================================================
+  excalidraw:
+    image: excalidraw/excalidraw:latest
+    container_name: labsoc-excalidraw
+    restart: unless-stopped
+    ports:
+      - "8082:80"  # Excalidraw Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=collaboration"
+      - "labsoc.nist=RECOVER"
+
+  # ============================================================
+  # Draw.io - Diagram Editor
+  # ============================================================
+  drawio:
+    image: jgraph/drawio:latest
+    container_name: labsoc-drawio
+    restart: unless-stopped
+    ports:
+      - "8086:8080"  # Draw.io Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=collaboration"
+      - "labsoc.nist=RECOVER"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  wikijs_db_data:
+  nextcloud_db_data:
+  nextcloud_data:
+  nextcloud_config:
+  nextcloud_custom_apps:
+  nextcloud_themes:
+  mattermost_db_data:
+  mattermost_data:
+  mattermost_logs:
+  mattermost_config:
+  mattermost_plugins:
+  mattermost_client_plugins:

@@ -1,0 +1,151 @@
+# ============================================================
+# MODULE: THREAT DECEPTION (HONEYPOTS)
+# NIST Function: PROTECT / DETECT
+# ============================================================
+# Components: T-Pot (all-in-one honeypot platform)
+# ============================================================
+
+services:
+  # ============================================================
+  # T-Pot - Multi-Honeypot Platform
+  # Includes: Cowrie, Dionaea, Honeytrap, etc.
+  # ============================================================
+  # Note: T-Pot is best run as a standalone VM/container
+  # This is a lightweight alternative with individual honeypots
+
+  # ============================================================
+  # Cowrie - SSH/Telnet Honeypot
+  # ============================================================
+  cowrie:
+    image: cowrie/cowrie:latest
+    container_name: labsoc-cowrie
+    restart: unless-stopped
+    environment:
+      - COWRIE_TELNET_ENABLED=yes
+    volumes:
+      - cowrie_data:/cowrie/var
+      - cowrie_logs:/cowrie/var/log/cowrie
+      - ./cowrie/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro
+    ports:
+      - "2222:2222"  # SSH Honeypot
+      - "2223:2223"  # Telnet Honeypot
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=deception"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Dionaea - Malware Honeypot
+  # ============================================================
+  dionaea:
+    image: dinotools/dionaea:latest
+    container_name: labsoc-dionaea
+    restart: unless-stopped
+    volumes:
+      - dionaea_data:/opt/dionaea/var
+      - dionaea_logs:/opt/dionaea/var/log
+      - dionaea_binaries:/opt/dionaea/var/dionaea/binaries
+    ports:
+      - "21:21"      # FTP
+      - "42:42"      # WINS
+      - "69:69/udp"  # TFTP
+      - "135:135"    # MSRPC
+      - "443:443"    # HTTPS
+      - "445:445"    # SMB
+      - "1433:1433"  # MSSQL
+      - "1723:1723"  # PPTP
+      - "3306:3306"  # MySQL
+      - "5060:5060"  # SIP
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=deception"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # HoneyPy - Multi-Protocol Honeypot
+  # ============================================================
+  honeypy:
+    image: foospidy/honeypy:latest
+    container_name: labsoc-honeypy
+    restart: unless-stopped
+    volumes:
+      - honeypy_logs:/opt/honeypy/log
+    ports:
+      - "8083:8080"  # Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=deception"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Mailoney - SMTP Honeypot
+  # ============================================================
+  mailoney:
+    image: awhitehatter/mailoney:latest
+    container_name: labsoc-mailoney
+    restart: unless-stopped
+    command: -s mail.labsoc.local -t schizo_open_relay -p 25
+    volumes:
+      - mailoney_logs:/mailoney/logs
+    ports:
+      - "25:25"  # SMTP
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=deception"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Elasticpot - Elasticsearch Honeypot
+  # ============================================================
+  elasticpot:
+    image: schmalle/elasticpot:latest
+    container_name: labsoc-elasticpot
+    restart: unless-stopped
+    volumes:
+      - elasticpot_logs:/elasticpot/log
+    ports:
+      - "9201:9200"  # Fake Elasticsearch
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=deception"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Log Aggregator for Honeypots
+  # ============================================================
+  filebeat-honeypots:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: labsoc-filebeat-honeypots
+    user: root
+    restart: unless-stopped
+    volumes:
+      - ./filebeat-honeypots.yml:/usr/share/filebeat/filebeat.yml:ro
+      - cowrie_logs:/var/log/cowrie:ro
+      - dionaea_logs:/var/log/dionaea:ro
+      - honeypy_logs:/var/log/honeypy:ro
+      - mailoney_logs:/var/log/mailoney:ro
+      - elasticpot_logs:/var/log/elasticpot:ro
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=deception"
+      - "labsoc.nist=DETECT"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  cowrie_data:
+  cowrie_logs:
+  dionaea_data:
+  dionaea_logs:
+  dionaea_binaries:
+  honeypy_logs:
+  mailoney_logs:
+  elasticpot_logs:

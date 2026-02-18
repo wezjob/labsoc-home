@@ -1,0 +1,205 @@
+# ============================================================
+# MODULE: SIEM (Security Information & Event Management)
+# NIST Function: DETECT (DE.AE - Anomalies and Events)
+# ============================================================
+# Components: ELK Stack, Wazuh, Suricata, Zeek
+# ============================================================
+
+services:
+  # ============================================================
+  # Elasticsearch - Search & Analytics Engine
+  # ============================================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: labsoc-elasticsearch
+    restart: unless-stopped
+    environment:
+      - node.name=labsoc-es
+      - cluster.name=labsoc-cluster
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-LabSoc2026!}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=basic
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"  # Elasticsearch REST API
+      - "9300:9300"  # Elasticsearch Transport
+    networks:
+      - labsoc-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD:-LabSoc2026!} http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "labsoc.module=siem"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Logstash - Data Pipeline
+  # ============================================================
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: labsoc-logstash
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USER=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD:-LabSoc2026!}
+      - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    ports:
+      - "5044:5044"  # Beats input
+      - "5045:5045"  # Syslog input
+      - "9600:9600"  # Logstash API
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=siem"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Kibana - Visualization & SIEM UI
+  # ============================================================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: labsoc-kibana
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_SYSTEM_PASSWORD:-LabSoc2026!}
+      - XPACK_SECURITY_ENABLED=true
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-32-char-random-string-for-encrypt}
+    ports:
+      - "5601:5601"  # Kibana Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=siem"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Filebeat - Log Shipper
+  # ============================================================
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: labsoc-filebeat
+    user: root
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    command: filebeat -e -strict.perms=false
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/log:/var/log/host:ro
+      - /opt/homebrew/var/log/suricata:/var/log/suricata:ro
+      - /opt/homebrew/var/log/zeek:/var/log/zeek:ro
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=siem"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Wazuh Manager - XDR/HIDS
+  # ============================================================
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.7.0
+    container_name: labsoc-wazuh-manager
+    restart: unless-stopped
+    hostname: wazuh.labsoc.local
+    environment:
+      - INDEXER_URL=https://wazuh-indexer:9200
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-WazuhIndexer2026!}
+      - FILEBEAT_SSL_VERIFICATION_MODE=none
+    volumes:
+      - wazuh_api_configuration:/var/ossec/api/configuration
+      - wazuh_etc:/var/ossec/etc
+      - wazuh_logs:/var/ossec/logs
+      - wazuh_queue:/var/ossec/queue
+      - wazuh_var_multigroups:/var/ossec/var/multigroups
+      - wazuh_integrations:/var/ossec/integrations
+      - wazuh_active_response:/var/ossec/active-response/bin
+      - wazuh_agentless:/var/ossec/agentless
+      - wazuh_wodles:/var/ossec/wodles
+      - ./wazuh/wazuh_cluster.conf:/wazuh-config-mount/etc/ossec.conf
+    ports:
+      - "1514:1514/tcp"  # Agent registration
+      - "1514:1514/udp"  # Agent events
+      - "1515:1515"      # Agent enrollment
+      - "55000:55000"    # Wazuh API
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=siem"
+      - "labsoc.nist=DETECT"
+
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:4.7.0
+    container_name: labsoc-wazuh-indexer
+    restart: unless-stopped
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-WazuhIndexer2026!}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - wazuh_indexer_data:/var/lib/wazuh-indexer
+    networks:
+      - labsoc-network
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.7.0
+    container_name: labsoc-wazuh-dashboard
+    restart: unless-stopped
+    depends_on:
+      - wazuh-indexer
+      - wazuh-manager
+    environment:
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-WazuhIndexer2026!}
+      - WAZUH_API_URL=https://wazuh-manager
+      - API_USERNAME=wazuh-wui
+      - API_PASSWORD=${WAZUH_API_PASSWORD:-WazuhAPI2026!}
+    ports:
+      - "5602:5601"  # Wazuh Dashboard (port différent de Kibana)
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=siem"
+      - "labsoc.nist=DETECT"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  elasticsearch_data:
+  wazuh_api_configuration:
+  wazuh_etc:
+  wazuh_logs:
+  wazuh_queue:
+  wazuh_var_multigroups:
+  wazuh_integrations:
+  wazuh_active_response:
+  wazuh_agentless:
+  wazuh_wodles:
+  wazuh_indexer_data:

@@ -1,0 +1,153 @@
+# ============================================================
+# MODULE: AUTOMATION & SOAR
+# NIST Function: RESPOND (RS.RP - Response Planning)
+# ============================================================
+# Components: n8n, Shuffle SOAR
+# ============================================================
+
+services:
+  # ============================================================
+  # n8n - Workflow Automation
+  # ============================================================
+  n8n-db:
+    image: postgres:15-alpine
+    container_name: labsoc-n8n-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${N8N_DB_PASSWORD:-N8nDB2026!}
+    volumes:
+      - n8n_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n-redis:
+    image: redis:7-alpine
+    container_name: labsoc-n8n-redis
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: labsoc-n8n
+    restart: unless-stopped
+    depends_on:
+      n8n-db:
+        condition: service_healthy
+      n8n-redis:
+        condition: service_started
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-N8nDB2026!}
+      - QUEUE_BULL_REDIS_HOST=n8n-redis
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_ADMIN_PASSWORD:-N8nAdmin2026!}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/Paris
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/workflows
+    ports:
+      - "5678:5678"  # n8n Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=automation"
+      - "labsoc.nist=RESPOND"
+
+  # ============================================================
+  # Shuffle SOAR - Security Orchestration
+  # ============================================================
+  shuffle-frontend:
+    image: ghcr.io/shuffle/shuffle-frontend:latest
+    container_name: labsoc-shuffle-frontend
+    restart: unless-stopped
+    environment:
+      - BACKEND_HOSTNAME=shuffle-backend
+    ports:
+      - "3443:443"   # Shuffle HTTPS UI
+      - "3080:80"    # Shuffle HTTP UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=automation"
+      - "labsoc.nist=RESPOND"
+
+  shuffle-backend:
+    image: ghcr.io/shuffle/shuffle-backend:latest
+    container_name: labsoc-shuffle-backend
+    restart: unless-stopped
+    environment:
+      - SHUFFLE_APP_HOTLOAD_FOLDER=/shuffle-apps
+      - SHUFFLE_FILE_LOCATION=/shuffle-files
+      - SHUFFLE_OPENSEARCH_URL=http://shuffle-opensearch:9200
+      - SHUFFLE_DEFAULT_USERNAME=admin
+      - SHUFFLE_DEFAULT_PASSWORD=${SHUFFLE_ADMIN_PASSWORD:-ShuffleAdmin2026!}
+      - SHUFFLE_DEFAULT_APIKEY=${SHUFFLE_API_KEY:-shuffle-api-key-change-me}
+      - BACKEND_HOSTNAME=shuffle-backend
+      - BASE_URL=http://localhost:3443
+      - OUTER_HOSTNAME=shuffle-backend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - shuffle_apps:/shuffle-apps
+      - shuffle_files:/shuffle-files
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=automation"
+      - "labsoc.nist=RESPOND"
+
+  shuffle-orborus:
+    image: ghcr.io/shuffle/shuffle-orborus:latest
+    container_name: labsoc-shuffle-orborus
+    restart: unless-stopped
+    environment:
+      - SHUFFLE_APP_SDK_TIMEOUT=300
+      - SHUFFLE_ORBORUS_EXECUTION_TIMEOUT=600
+      - BASE_URL=http://shuffle-backend:5001
+      - ENVIRONMENT_NAME=LabSOC
+      - ORG_ID=LabSOC
+      - CLEANUP=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - labsoc-network
+
+  shuffle-opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: labsoc-shuffle-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - shuffle_opensearch_data:/usr/share/opensearch/data
+    networks:
+      - labsoc-network
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  n8n_db_data:
+  n8n_data:
+  shuffle_apps:
+  shuffle_files:
+  shuffle_opensearch_data:

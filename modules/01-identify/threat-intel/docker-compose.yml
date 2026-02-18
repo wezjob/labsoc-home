@@ -1,0 +1,213 @@
+# ============================================================
+# MODULE: THREAT INTELLIGENCE
+# NIST Function: IDENTIFY (ID.RA - Risk Assessment)
+# ============================================================
+# Components: MISP, IntelOWL, OpenCTI
+# ============================================================
+
+services:
+  # ============================================================
+  # MISP - Malware Information Sharing Platform
+  # ============================================================
+  misp-db:
+    image: mysql:8.0
+    container_name: labsoc-misp-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: misp
+      MYSQL_USER: misp
+      MYSQL_PASSWORD: ${MISP_DB_PASSWORD:-MispDB2026!}
+      MYSQL_ROOT_PASSWORD: ${MISP_ROOT_PASSWORD:-MispRoot2026!}
+    volumes:
+      - misp_db_data:/var/lib/mysql
+    networks:
+      - labsoc-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  misp-redis:
+    image: redis:7-alpine
+    container_name: labsoc-misp-redis
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  misp:
+    image: ghcr.io/misp/misp-docker/misp-core:latest
+    container_name: labsoc-misp
+    restart: unless-stopped
+    depends_on:
+      misp-db:
+        condition: service_healthy
+      misp-redis:
+        condition: service_started
+    environment:
+      BASE_URL: "https://localhost"
+      MYSQL_HOST: misp-db
+      MYSQL_DATABASE: misp
+      MYSQL_USER: misp
+      MYSQL_PASSWORD: ${MISP_DB_PASSWORD:-MispDB2026!}
+      REDIS_HOST: misp-redis
+      MISP_ADMIN_EMAIL: admin@labsoc.local
+      MISP_ADMIN_PASSPHRASE: ${MISP_ADMIN_PASSWORD:-MispAdmin2026!}
+    volumes:
+      - misp_data:/var/www/MISP
+      - misp_gpg:/var/www/MISP/.gnupg
+    ports:
+      - "8443:443"   # HTTPS - MISP Web UI
+      - "8080:80"    # HTTP redirect
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-intel"
+      - "labsoc.nist=IDENTIFY"
+
+  # ============================================================
+  # IntelOWL - Threat Intelligence Automation
+  # ============================================================
+  intelowl-db:
+    image: postgres:15-alpine
+    container_name: labsoc-intelowl-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: intelowl
+      POSTGRES_USER: intelowl
+      POSTGRES_PASSWORD: ${INTELOWL_DB_PASSWORD:-IntelOwlDB2026!}
+    volumes:
+      - intelowl_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+
+  intelowl-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: labsoc-intelowl-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: intelowl
+      RABBITMQ_DEFAULT_PASS: ${INTELOWL_RABBITMQ_PASSWORD:-IntelOwlMQ2026!}
+    networks:
+      - labsoc-network
+
+  intelowl:
+    image: intelowlproject/intelowl:latest
+    container_name: labsoc-intelowl
+    restart: unless-stopped
+    depends_on:
+      - intelowl-db
+      - intelowl-rabbitmq
+    environment:
+      DB_HOST: intelowl-db
+      DB_PORT: 5432
+      DB_USER: intelowl
+      DB_PASSWORD: ${INTELOWL_DB_PASSWORD:-IntelOwlDB2026!}
+      DB_NAME: intelowl
+      BROKER_URL: amqp://intelowl:${INTELOWL_RABBITMQ_PASSWORD:-IntelOwlMQ2026!}@intelowl-rabbitmq:5672/
+      DJANGO_SECRET: ${INTELOWL_SECRET:-$(openssl rand -hex 32)}
+    volumes:
+      - intelowl_data:/opt/deploy/intel_owl/files
+    ports:
+      - "8001:8001"  # IntelOWL API/UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-intel"
+      - "labsoc.nist=IDENTIFY"
+
+  # ============================================================
+  # OpenCTI - Cyber Threat Intelligence Platform
+  # ============================================================
+  opencti-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: labsoc-opencti-es
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+    volumes:
+      - opencti_es_data:/usr/share/elasticsearch/data
+    networks:
+      - labsoc-network
+
+  opencti-minio:
+    image: minio/minio:latest
+    container_name: labsoc-opencti-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: opencti
+      MINIO_ROOT_PASSWORD: ${OPENCTI_MINIO_PASSWORD:-OpenCTIMinio2026!}
+    volumes:
+      - opencti_minio_data:/data
+    networks:
+      - labsoc-network
+
+  opencti-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: labsoc-opencti-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: opencti
+      RABBITMQ_DEFAULT_PASS: ${OPENCTI_RABBITMQ_PASSWORD:-OpenCTIMQ2026!}
+    networks:
+      - labsoc-network
+
+  opencti:
+    image: opencti/platform:6.0.0
+    container_name: labsoc-opencti
+    restart: unless-stopped
+    depends_on:
+      - opencti-elasticsearch
+      - opencti-minio
+      - opencti-rabbitmq
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=8096
+      - APP__PORT=8080
+      - APP__ADMIN__EMAIL=admin@labsoc.local
+      - APP__ADMIN__PASSWORD=${OPENCTI_ADMIN_PASSWORD:-OpenCTIAdmin2026!}
+      - APP__ADMIN__TOKEN=${OPENCTI_ADMIN_TOKEN:-a1b2c3d4-e5f6-7890-abcd-ef1234567890}
+      - ELASTICSEARCH__URL=http://opencti-elasticsearch:9200
+      - MINIO__ENDPOINT=opencti-minio
+      - MINIO__PORT=9000
+      - MINIO__ACCESS_KEY=opencti
+      - MINIO__SECRET_KEY=${OPENCTI_MINIO_PASSWORD:-OpenCTIMinio2026!}
+      - RABBITMQ__HOSTNAME=opencti-rabbitmq
+      - RABBITMQ__USERNAME=opencti
+      - RABBITMQ__PASSWORD=${OPENCTI_RABBITMQ_PASSWORD:-OpenCTIMQ2026!}
+      - MISP__URL=http://misp
+      - MISP__KEY=${MISP_API_KEY:-}
+    ports:
+      - "8002:8080"  # OpenCTI Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=threat-intel"
+      - "labsoc.nist=IDENTIFY"
+
+  opencti-worker:
+    image: opencti/worker:6.0.0
+    container_name: labsoc-opencti-worker
+    restart: unless-stopped
+    depends_on:
+      - opencti
+    environment:
+      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN:-a1b2c3d4-e5f6-7890-abcd-ef1234567890}
+    networks:
+      - labsoc-network
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  misp_db_data:
+  misp_data:
+  misp_gpg:
+  intelowl_db_data:
+  intelowl_data:
+  opencti_es_data:
+  opencti_minio_data:

@@ -1,28 +1,33 @@
 # 🛡️ LabSOC Home
 
-**Security Operations Center (SOC) complet pour environnement home-lab**
+**Enterprise-grade Security Operations Center for Home Lab - Based on NIST Cybersecurity Framework**
 
+[![NIST CSF](https://img.shields.io/badge/Framework-NIST_CSF-blue)](https://www.nist.gov/cyberframework)
 [![ELK Stack](https://img.shields.io/badge/ELK-8.11.0-blue)](https://www.elastic.co/)
-[![Suricata](https://img.shields.io/badge/Suricata-8.0.3-orange)](https://suricata.io/)
-[![Zeek](https://img.shields.io/badge/Zeek-8.1.1-green)](https://zeek.org/)
-[![n8n](https://img.shields.io/badge/n8n-SOAR-purple)](https://n8n.io/)
-[![IRIS DFIR](https://img.shields.io/badge/IRIS-DFIR-red)](https://dfir-iris.org/)
+[![Wazuh](https://img.shields.io/badge/Wazuh-4.7.0-brightgreen)](https://wazuh.com/)
+[![MISP](https://img.shields.io/badge/MISP-ThreatIntel-orange)](https://www.misp-project.org/)
+[![OpenCTI](https://img.shields.io/badge/OpenCTI-6.0-red)](https://www.opencti.io/)
+[![IRIS DFIR](https://img.shields.io/badge/IRIS-DFIR-purple)](https://dfir-iris.org/)
+[![Velociraptor](https://img.shields.io/badge/Velociraptor-IR-green)](https://docs.velociraptor.app/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)](https://docker.com/)
 
 ---
 
-## 📋 Description
+## 📋 Overview
 
-LabSOC Home est une infrastructure SOC complète déployable sur macOS avec Docker Desktop. Elle intègre :
+LabSOC Home is a **modular, production-ready SOC infrastructure** organized according to the **NIST Cybersecurity Framework**. Deploy only what you need, scale as you grow.
 
-- **ELK Stack** - Collecte, analyse et visualisation des logs
-- **Suricata** - IDS/IPS avec détection de signatures
-- **Zeek** - Analyse réseau et métadonnées
-- **n8n** - SOAR pour automatisation des réponses
-- **IRIS DFIR** - Plateforme de gestion d'incidents
-- **Auditbeat** - HIDS pour surveillance de l'hôte
+### Key Features
 
-## 🏗️ Architecture
+- 🏗️ **Modular Architecture** - Enable/disable modules independently
+- 📊 **NIST Framework** - Organized by IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER
+- 🔄 **Full Integration** - All tools interconnected via APIs and webhooks
+- 🐳 **Docker-based** - Easy deployment with `make` commands
+- ⚔️ **Red Team Ready** - Built-in adversary simulation tools
+
+---
+
+## 🏗️ Architecture NIST
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

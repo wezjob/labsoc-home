@@ -1,0 +1,190 @@
+# ============================================================
+# MODULE: OBSERVABILITY
+# NIST Function: DETECT (DE.CM - Continuous Monitoring)
+# ============================================================
+# Components: Grafana, Prometheus, Node Exporter, AlertManager
+# ============================================================
+
+services:
+  # ============================================================
+  # Prometheus - Metrics Collection
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: labsoc-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts:/etc/prometheus/alerts:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"  # Prometheus Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # AlertManager - Alert Management
+  # ============================================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: labsoc-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "9093:9093"  # AlertManager Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Grafana - Visualization & Dashboards
+  # ============================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: labsoc-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-GrafanaAdmin2026!}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "http://localhost:3000"
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"  # Grafana Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Node Exporter - Host Metrics
+  # ============================================================
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: labsoc-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"  # Node Exporter metrics
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # cAdvisor - Container Metrics
+  # ============================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: labsoc-cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8084:8080"  # cAdvisor Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Loki - Log Aggregation
+  # ============================================================
+  loki:
+    image: grafana/loki:latest
+    container_name: labsoc-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"  # Loki API
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Promtail - Log Collection for Loki
+  # ============================================================
+  promtail:
+    image: grafana/promtail:latest
+    container_name: labsoc-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+  # ============================================================
+  # Jaeger - Distributed Tracing
+  # ============================================================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: labsoc-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector HTTP
+      - "6831:6831/udp"  # Jaeger agent
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=observability"
+      - "labsoc.nist=DETECT"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
+  loki_data:

@@ -1,0 +1,86 @@
+# ============================================================
+# MODULE: TICKETING
+# NIST Function: RESPOND (RS.CO - Communications)
+# ============================================================
+# Components: Note: IRIS gère le ticketing, complément ici
+# ============================================================
+
+services:
+  # ============================================================
+  # Zammad - Helpdesk & Ticketing
+  # ============================================================
+  zammad-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: labsoc-zammad-es
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - zammad_es_data:/usr/share/elasticsearch/data
+    networks:
+      - labsoc-network
+
+  zammad-memcached:
+    image: memcached:alpine
+    container_name: labsoc-zammad-memcached
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  zammad-postgresql:
+    image: postgres:15-alpine
+    container_name: labsoc-zammad-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: zammad
+      POSTGRES_USER: zammad
+      POSTGRES_PASSWORD: ${ZAMMAD_DB_PASSWORD:-ZammadDB2026!}
+    volumes:
+      - zammad_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+
+  zammad-redis:
+    image: redis:7-alpine
+    container_name: labsoc-zammad-redis
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  zammad:
+    image: ghcr.io/zammad/zammad:latest
+    container_name: labsoc-zammad
+    restart: unless-stopped
+    depends_on:
+      - zammad-elasticsearch
+      - zammad-memcached
+      - zammad-postgresql
+      - zammad-redis
+    environment:
+      - POSTGRESQL_HOST=zammad-postgresql
+      - POSTGRESQL_DB=zammad
+      - POSTGRESQL_USER=zammad
+      - POSTGRESQL_PASS=${ZAMMAD_DB_PASSWORD:-ZammadDB2026!}
+      - ELASTICSEARCH_HOST=zammad-elasticsearch
+      - MEMCACHE_SERVERS=zammad-memcached:11211
+      - REDIS_URL=redis://zammad-redis:6379
+    volumes:
+      - zammad_data:/opt/zammad
+    ports:
+      - "8009:3000"  # Zammad Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=ticketing"
+      - "labsoc.nist=RESPOND"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  zammad_es_data:
+  zammad_db_data:
+  zammad_data:

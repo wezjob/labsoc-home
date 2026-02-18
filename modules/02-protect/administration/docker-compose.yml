@@ -1,0 +1,192 @@
+# ============================================================
+# MODULE: ADMINISTRATION & REMOTE ACCESS
+# NIST Function: PROTECT (PR.AC - Access Control)
+# ============================================================
+# Components: Webmin, Guacamole, Pangolin, Portainer
+# ============================================================
+
+services:
+  # ============================================================
+  # Portainer - Docker Management
+  # ============================================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: labsoc-portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    ports:
+      - "9443:9443"  # Portainer HTTPS UI
+      - "9000:9000"  # Portainer HTTP UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=administration"
+      - "labsoc.nist=PROTECT"
+
+  # ============================================================
+  # Apache Guacamole - Remote Desktop Gateway
+  # ============================================================
+  guacamole-db:
+    image: postgres:15-alpine
+    container_name: labsoc-guacamole-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: guacamole
+      POSTGRES_USER: guacamole
+      POSTGRES_PASSWORD: ${GUACAMOLE_DB_PASSWORD:-GuacamoleDB2026!}
+    volumes:
+      - guacamole_db_data:/var/lib/postgresql/data
+      - ./guacamole/initdb:/docker-entrypoint-initdb.d
+    networks:
+      - labsoc-network
+
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: labsoc-guacd
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  guacamole:
+    image: guacamole/guacamole:latest
+    container_name: labsoc-guacamole
+    restart: unless-stopped
+    depends_on:
+      - guacamole-db
+      - guacd
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRES_HOSTNAME: guacamole-db
+      POSTGRES_DATABASE: guacamole
+      POSTGRES_USER: guacamole
+      POSTGRES_PASSWORD: ${GUACAMOLE_DB_PASSWORD:-GuacamoleDB2026!}
+    ports:
+      - "8005:8080"  # Guacamole Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=administration"
+      - "labsoc.nist=PROTECT"
+
+  # ============================================================
+  # Webmin - System Administration
+  # ============================================================
+  webmin:
+    image: jasonrivers/webmin:latest
+    container_name: labsoc-webmin
+    restart: unless-stopped
+    environment:
+      ROOT_PASSWORD: ${WEBMIN_ROOT_PASSWORD:-WebminRoot2026!}
+    volumes:
+      - webmin_data:/data
+      - /etc:/etc:ro
+      - /var/log:/var/log:ro
+    ports:
+      - "10000:10000"  # Webmin HTTPS UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=administration"
+      - "labsoc.nist=PROTECT"
+
+  # ============================================================
+  # Uptime Kuma - Service Monitoring
+  # ============================================================
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: labsoc-uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - uptime_kuma_data:/app/data
+    ports:
+      - "3001:3001"  # Uptime Kuma Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=administration"
+      - "labsoc.nist=PROTECT"
+
+  # ============================================================
+  # Authentik - Identity Provider (SSO)
+  # ============================================================
+  authentik-db:
+    image: postgres:15-alpine
+    container_name: labsoc-authentik-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: ${AUTHENTIK_DB_PASSWORD:-AuthentikDB2026!}
+    volumes:
+      - authentik_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+
+  authentik-redis:
+    image: redis:7-alpine
+    container_name: labsoc-authentik-redis
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  authentik:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: labsoc-authentik
+    restart: unless-stopped
+    depends_on:
+      - authentik-db
+      - authentik-redis
+    command: server
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-ChangeMe-RandomSecretKey-AtLeast50Chars!}
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD:-AuthentikDB2026!}
+    volumes:
+      - authentik_media:/media
+      - authentik_templates:/templates
+    ports:
+      - "9006:9000"  # Authentik HTTP
+      - "9444:9443"  # Authentik HTTPS
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=administration"
+      - "labsoc.nist=PROTECT"
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: labsoc-authentik-worker
+    restart: unless-stopped
+    depends_on:
+      - authentik-db
+      - authentik-redis
+    command: worker
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-ChangeMe-RandomSecretKey-AtLeast50Chars!}
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD:-AuthentikDB2026!}
+    networks:
+      - labsoc-network
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  portainer_data:
+  guacamole_db_data:
+  webmin_data:
+  uptime_kuma_data:
+  authentik_db_data:
+  authentik_media:
+  authentik_templates:

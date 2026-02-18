@@ -1,0 +1,187 @@
+# ============================================================
+# MODULE: RED TEAM - OFFENSIVE SECURITY
+# NIST Function: Support for IDENTIFY & PROTECT Testing
+# ============================================================
+# Components: Kali Linux, Atomic Red Team, Caldera, Infection Monkey
+# ============================================================
+# ⚠️ WARNING: These tools are for authorized testing only!
+# ============================================================
+
+services:
+  # ============================================================
+  # Kali Linux - Penetration Testing
+  # ============================================================
+  kali:
+    image: kalilinux/kali-rolling:latest
+    container_name: labsoc-kali
+    restart: unless-stopped
+    privileged: true
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash
+    command: -c "apt-get update && apt-get install -y kali-linux-headless && tail -f /dev/null"
+    volumes:
+      - kali_data:/root
+      - kali_tools:/opt/tools
+      - ./redteam/scripts:/scripts
+    ports:
+      - "4444:4444"   # Metasploit default
+      - "8445:443"    # HTTPS callback
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.warning=authorized-testing-only"
+
+  # ============================================================
+  # CALDERA - Adversary Emulation Platform (MITRE)
+  # ============================================================
+  caldera:
+    image: mitre/caldera:latest
+    container_name: labsoc-caldera
+    restart: unless-stopped
+    environment:
+      - CALDERA_URL=http://localhost:8888
+    volumes:
+      - caldera_data:/usr/src/app/data
+      - caldera_plugins:/usr/src/app/plugins
+    ports:
+      - "8088:8888"  # CALDERA Web UI
+      - "7010:7010"  # Agent callback HTTP
+      - "7011:7011"  # Agent callback HTTPS
+      - "7012:7012"  # Agent callback WebSocket
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.nist=IDENTIFY"
+
+  # ============================================================
+  # Atomic Red Team - ATT&CK Testing
+  # ============================================================
+  atomic-red-team:
+    image: redcanaryco/invoke-atomicredteam:latest
+    container_name: labsoc-atomic
+    restart: unless-stopped
+    entrypoint: ["pwsh", "-NoExit"]
+    stdin_open: true
+    tty: true
+    volumes:
+      - atomic_data:/AtomicRedTeam
+      - ./redteam/atomics-custom:/custom-atomics
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.nist=IDENTIFY"
+
+  # ============================================================
+  # Infection Monkey - Breach & Attack Simulation
+  # ============================================================
+  infection-monkey:
+    image: guardicore/monkey-island:latest
+    container_name: labsoc-infection-monkey
+    restart: unless-stopped
+    volumes:
+      - monkey_data:/var/monkey-island/data
+    ports:
+      - "5100:5000"   # Monkey Island Web UI
+      - "5101:8080"   # API
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.nist=IDENTIFY"
+
+  # ============================================================
+  # Sliver - C2 Framework
+  # ============================================================
+  sliver:
+    image: ghcr.io/bishopfox/sliver:latest
+    container_name: labsoc-sliver
+    restart: unless-stopped
+    entrypoint: ["./sliver-server"]
+    volumes:
+      - sliver_data:/root/.sliver
+    ports:
+      - "31337:31337"  # Sliver multiplayer
+      - "8446:443"     # MTLS
+      - "8447:80"      # HTTP C2
+      - "53:53/udp"    # DNS C2
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.warning=authorized-testing-only"
+
+  # ============================================================
+  # Mythic - C2 Framework
+  # ============================================================
+  mythic:
+    image: ghcr.io/its-a-feature/mythic:latest
+    container_name: labsoc-mythic
+    restart: unless-stopped
+    environment:
+      - MYTHIC_ADMIN_USER=admin
+      - MYTHIC_ADMIN_PASSWORD=${MYTHIC_ADMIN_PASSWORD:-MythicAdmin2026!}
+    volumes:
+      - mythic_data:/Mythic
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "7443:7443"  # Mythic Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.warning=authorized-testing-only"
+
+  # ============================================================
+  # Gophish - Phishing Framework
+  # ============================================================
+  gophish:
+    image: gophish/gophish:latest
+    container_name: labsoc-gophish
+    restart: unless-stopped
+    volumes:
+      - gophish_data:/opt/gophish/data
+    ports:
+      - "3333:3333"  # Admin UI
+      - "8085:80"    # Phishing server
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.nist=IDENTIFY"
+
+  # ============================================================
+  # Pwndrop - File Hosting for Payloads
+  # ============================================================
+  pwndrop:
+    image: pwnbob/pwndrop:latest
+    container_name: labsoc-pwndrop
+    restart: unless-stopped
+    volumes:
+      - pwndrop_data:/app/data
+    ports:
+      - "8448:443"  # Pwndrop UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=redteam"
+      - "labsoc.warning=authorized-testing-only"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  kali_data:
+  kali_tools:
+  caldera_data:
+  caldera_plugins:
+  atomic_data:
+  monkey_data:
+  sliver_data:
+  mythic_data:
+  gophish_data:
+  pwndrop_data:

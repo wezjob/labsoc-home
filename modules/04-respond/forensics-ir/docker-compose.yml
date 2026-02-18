@@ -1,0 +1,220 @@
+# ============================================================
+# MODULE: FORENSICS & INCIDENT RESPONSE
+# NIST Function: RESPOND (RS.AN - Analysis)
+# ============================================================
+# Components: IRIS DFIR, Velociraptor, CAPE Sandbox, Timesketch
+# ============================================================
+
+services:
+  # ============================================================
+  # IRIS DFIR - Incident Response Platform
+  # ============================================================
+  # Note: IRIS est installé via son propre repo
+  # git clone https://github.com/dfir-iris/iris-web.git
+  # Cette section est pour référence
+
+  # ============================================================
+  # Velociraptor - Endpoint Visibility & IR
+  # ============================================================
+  velociraptor:
+    image: velocidex/velociraptor:latest
+    container_name: labsoc-velociraptor
+    restart: unless-stopped
+    command: frontend -v --config /config/server.config.yaml
+    volumes:
+      - ./velociraptor/server.config.yaml:/config/server.config.yaml:ro
+      - velociraptor_data:/velociraptor
+      - velociraptor_uploads:/uploads
+    ports:
+      - "8889:8889"   # Velociraptor GUI
+      - "8000:8000"   # Frontend gRPC
+      - "8001:8001"   # Client gRPC  
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=forensics-ir"
+      - "labsoc.nist=RESPOND"
+
+  # ============================================================
+  # CAPE Sandbox - Malware Analysis (Cuckoo Fork)
+  # ============================================================
+  cape-db:
+    image: postgres:15-alpine
+    container_name: labsoc-cape-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cape
+      POSTGRES_USER: cape
+      POSTGRES_PASSWORD: ${CAPE_DB_PASSWORD:-CapeDB2026!}
+    volumes:
+      - cape_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+
+  cape-mongodb:
+    image: mongo:5
+    container_name: labsoc-cape-mongodb
+    restart: unless-stopped
+    volumes:
+      - cape_mongodb_data:/data/db
+    networks:
+      - labsoc-network
+
+  # Note: CAPE nécessite une VM pour l'analyse
+  # Configuration avancée requise
+  cape-web:
+    image: cuckoobox/cape:latest
+    container_name: labsoc-cape-web
+    restart: unless-stopped
+    depends_on:
+      - cape-db
+      - cape-mongodb
+    environment:
+      - DB_HOST=cape-db
+      - DB_NAME=cape
+      - DB_USER=cape
+      - DB_PASSWORD=${CAPE_DB_PASSWORD:-CapeDB2026!}
+      - MONGO_HOST=cape-mongodb
+    volumes:
+      - cape_storage:/opt/CAPEv2/storage
+      - cape_config:/opt/CAPEv2/conf
+    ports:
+      - "8007:8000"  # CAPE Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=forensics-ir"
+      - "labsoc.nist=RESPOND"
+
+  # ============================================================
+  # Timesketch - Timeline Analysis
+  # ============================================================
+  timesketch-db:
+    image: postgres:15-alpine
+    container_name: labsoc-timesketch-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: timesketch
+      POSTGRES_USER: timesketch
+      POSTGRES_PASSWORD: ${TIMESKETCH_DB_PASSWORD:-TimesketchDB2026!}
+    volumes:
+      - timesketch_db_data:/var/lib/postgresql/data
+    networks:
+      - labsoc-network
+
+  timesketch-opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: labsoc-timesketch-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+    volumes:
+      - timesketch_opensearch_data:/usr/share/opensearch/data
+    networks:
+      - labsoc-network
+
+  timesketch-redis:
+    image: redis:7-alpine
+    container_name: labsoc-timesketch-redis
+    restart: unless-stopped
+    networks:
+      - labsoc-network
+
+  timesketch:
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:latest
+    container_name: labsoc-timesketch
+    restart: unless-stopped
+    depends_on:
+      - timesketch-db
+      - timesketch-opensearch
+      - timesketch-redis
+    environment:
+      - POSTGRES_HOST=timesketch-db
+      - POSTGRES_USER=timesketch
+      - POSTGRES_PASSWORD=${TIMESKETCH_DB_PASSWORD:-TimesketchDB2026!}
+      - OPENSEARCH_HOST=timesketch-opensearch
+      - REDIS_HOST=timesketch-redis
+    volumes:
+      - timesketch_data:/var/lib/timesketch
+      - timesketch_uploads:/usr/share/timesketch/upload
+    ports:
+      - "5000:5000"  # Timesketch Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=forensics-ir"
+      - "labsoc.nist=RESPOND"
+
+  # ============================================================
+  # CyberChef - Data Analysis Tool
+  # ============================================================
+  cyberchef:
+    image: mpepping/cyberchef:latest
+    container_name: labsoc-cyberchef
+    restart: unless-stopped
+    ports:
+      - "8008:8000"  # CyberChef Web UI
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=forensics-ir"
+      - "labsoc.nist=RESPOND"
+
+  # ============================================================
+  # Autopsy (via Docker)
+  # Note: Autopsy est mieux utilisé en mode GUI natif
+  # ============================================================
+
+  # ============================================================
+  # Volatility3 - Memory Forensics
+  # ============================================================
+  volatility:
+    image: phocean/volatility3:latest
+    container_name: labsoc-volatility
+    restart: unless-stopped
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - volatility_samples:/samples
+      - volatility_output:/output
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=forensics-ir"
+      - "labsoc.nist=RESPOND"
+
+  # ============================================================
+  # DFIR-ORC - Collection Tool
+  # ============================================================
+  dfir-orc:
+    image: alpine:latest
+    container_name: labsoc-dfir-orc
+    restart: unless-stopped
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - dfir_orc_output:/output
+    networks:
+      - labsoc-network
+    labels:
+      - "labsoc.module=forensics-ir"
+      - "labsoc.nist=RESPOND"
+
+networks:
+  labsoc-network:
+    external: true
+
+volumes:
+  velociraptor_data:
+  velociraptor_uploads:
+  cape_db_data:
+  cape_mongodb_data:
+  cape_storage:
+  cape_config:
+  timesketch_db_data:
+  timesketch_opensearch_data:
+  timesketch_data:
+  timesketch_uploads:
+  volatility_samples:
+  volatility_output:
+  dfir_orc_output:
