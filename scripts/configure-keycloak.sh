@@ -11,7 +11,7 @@ echo "🔐 Configuring Keycloak SSO..."
 
 # Wait for Keycloak to be ready
 echo "⏳ Waiting for Keycloak..."
-until curl -s "$KEYCLOAK_URL/health/ready" 2>/dev/null | grep -q "UP"; do
+until curl -s -o /dev/null -w "%{http_code}" "$KEYCLOAK_URL/admin/master/console/" 2>/dev/null | grep -q "200"; do
     sleep 5
 done
 echo "✅ Keycloak is ready"
@@ -89,6 +89,29 @@ create_client "kibana" "Kibana" "http://localhost:5601/*"
 create_client "n8n" "n8n SOAR" "http://localhost:5678/*"
 create_client "portainer" "Portainer" "https://localhost:9443/*"
 create_client "homepage" "Homepage Dashboard" "http://localhost:3003/*"
+create_client "iris" "IRIS DFIR" "https://localhost:8443/*"
+
+# Function to get client secret
+get_client_secret() {
+    local client_id=$1
+    local internal_id=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM_NAME/clients?clientId=$client_id" \
+        -H "Authorization: Bearer $TOKEN" | jq -r '.[0].id')
+    
+    if [ -n "$internal_id" ] && [ "$internal_id" != "null" ]; then
+        local secret=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM_NAME/clients/$internal_id/client-secret" \
+            -H "Authorization: Bearer $TOKEN" | jq -r '.value')
+        echo "$secret"
+    fi
+}
+
+# Get and display client secrets
+echo ""
+echo "🔑 Retrieving client secrets..."
+GRAFANA_SECRET=$(get_client_secret "grafana")
+KIBANA_SECRET=$(get_client_secret "kibana")
+N8N_SECRET=$(get_client_secret "n8n")
+PORTAINER_SECRET=$(get_client_secret "portainer")
+IRIS_SECRET=$(get_client_secret "iris")
 
 # Create SOC admin user
 echo "👤 Creating SOC admin user..."
@@ -119,6 +142,50 @@ else
     echo "⚠️ User creation may have failed"
 fi
 
+# Create roles
+echo "🎭 Creating roles..."
+for role in "soc-analyst" "soc-admin" "ir-responder" "threat-hunter"; do
+    curl -s -X POST "$KEYCLOAK_URL/admin/realms/$REALM_NAME/roles" \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"name": "'"$role"'", "description": "'"${role^} role"'"}' 2>/dev/null
+done
+echo "✅ Roles created: soc-analyst, soc-admin, ir-responder, threat-hunter"
+
+# Save client secrets to file
+SECRETS_FILE="$(dirname "$0")/../docs/KEYCLOAK_SECRETS.md"
+cat > "$SECRETS_FILE" << EOF
+# Keycloak OAuth2 Client Secrets
+
+> Generated on: $(date)
+> Store these in Vaultwarden!
+
+## OAuth2 Clients
+
+| Application | Client ID | Client Secret |
+|-------------|-----------|---------------|
+| Grafana | grafana | ${GRAFANA_SECRET:-"Not available"} |
+| Kibana | kibana | ${KIBANA_SECRET:-"Not available"} |
+| n8n | n8n | ${N8N_SECRET:-"Not available"} |
+| Portainer | portainer | ${PORTAINER_SECRET:-"Not available"} |
+| IRIS DFIR | iris | ${IRIS_SECRET:-"Not available"} |
+
+## Common Settings
+
+- **Issuer URL**: $KEYCLOAK_URL/realms/$REALM_NAME
+- **Authorization Endpoint**: $KEYCLOAK_URL/realms/$REALM_NAME/protocol/openid-connect/auth
+- **Token Endpoint**: $KEYCLOAK_URL/realms/$REALM_NAME/protocol/openid-connect/token
+- **Userinfo Endpoint**: $KEYCLOAK_URL/realms/$REALM_NAME/protocol/openid-connect/userinfo
+- **JWKS URI**: $KEYCLOAK_URL/realms/$REALM_NAME/protocol/openid-connect/certs
+
+## SOC User Credentials
+
+| Username | Password | Role |
+|----------|----------|------|
+| soc-admin | SocAdmin2026! | All roles |
+
+EOF
+
 echo ""
 echo "✅ Keycloak configuration complete!"
 echo ""
@@ -127,7 +194,14 @@ echo "   Realm: $REALM_NAME"
 echo "   URL: $KEYCLOAK_URL/realms/$REALM_NAME"
 echo "   Admin Console: $KEYCLOAK_URL/admin/$REALM_NAME/console"
 echo ""
-echo "   OAuth2 Clients: grafana, kibana, n8n, portainer, homepage"
+echo "   OAuth2 Clients: grafana, kibana, n8n, portainer, iris"
+echo ""
+echo "   Client Secrets saved to: $SECRETS_FILE"
 echo ""
 echo "   SOC User: soc-admin / SocAdmin2026!"
+echo ""
+echo "📖 Next Steps:"
+echo "   1. Configure each application to use Keycloak OAuth2"
+echo "   2. Use the client secrets from $SECRETS_FILE"
+echo "   3. Test SSO login with soc-admin user"
 echo ""

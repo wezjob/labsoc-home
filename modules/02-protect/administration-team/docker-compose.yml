@@ -110,7 +110,7 @@ services:
     environment:
       PUID: 1000
       PGID: 1000
-      HOMEPAGE_ALLOWED_HOSTS: localhost,127.0.0.1,192.168.*.*,10.*.*.*,labsoc-homepage
+      HOMEPAGE_ALLOWED_HOSTS: "localhost:3003,127.0.0.1:3003,localhost,127.0.0.1,labsoc-homepage"
     volumes:
       - ./homepage/config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
