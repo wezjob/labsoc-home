@@ -13,6 +13,8 @@
 
 > ⚠️ **Tested on macOS** (Apple Silicon & Intel). Linux support coming soon.
 
+![SOC-in-a-Box Architecture](docs/images/SOC-in-a-Box-Architecture.jpg)
+
 ---
 
 ## 📋 Overview
@@ -128,6 +130,11 @@ Data analysis and transformation toolkit.
 Container resource monitoring.
 
 ![cAdvisor](docs/images/cadvisor.png)
+
+### Draw.io
+Architecture and network diagramming tool.
+
+![Draw.io](docs/images/draw-io.png)
 
 ---
 
