@@ -84,12 +84,15 @@ services:
     container_name: labsoc-vaultwarden
     restart: unless-stopped
     environment:
-      DOMAIN: ${VAULTWARDEN_DOMAIN:-http://localhost:8085}
+      DOMAIN: "http://localhost:8085"
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:-VaultwardenAdmin2026!}
-      SIGNUPS_ALLOWED: true
-      INVITATIONS_ALLOWED: true
-      SHOW_PASSWORD_HINT: false
+      SIGNUPS_ALLOWED: "true"
+      INVITATIONS_ALLOWED: "true"
+      SHOW_PASSWORD_HINT: "false"
       LOG_LEVEL: info
+      # Allow HTTP for local development
+      ROCKET_SECURE_HEADERS: "false"
+      I_REALLY_WANT_VOLATILE_STORAGE: "false"
     volumes:
       - vaultwarden_data:/data
     ports:
