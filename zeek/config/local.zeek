@@ -7,9 +7,7 @@
 @load base/frameworks/notice
 @load base/frameworks/input
 @load base/frameworks/cluster
-@load base/frameworks/metrics
 @load base/frameworks/sumstats
-@load base/frameworks/control
 
 # Load protocol analyzers
 @load base/protocols/conn

@@ -8,7 +8,7 @@ filebeat.inputs:
 - type: log
   enabled: true
   paths:
-    - /var/log/suricata/eve.json
+    - /var/log/labsoc/suricata/eve.json
   json.keys_under_root: true
   json.add_error_key: true
   fields:
@@ -19,7 +19,7 @@ filebeat.inputs:
 - type: log
   enabled: true
   paths:
-    - /var/log/zeek/current/*.log
+    - /var/log/labsoc/zeek/current/*.log
   exclude_files: ['\.gz$']
   fields:
     labsoc.source: zeek

@@ -1,0 +1,99 @@
+# ============================================
+# LABSOC HOME - Custom Suricata Detection Rules
+# ============================================
+# Use Cases: UC-001 to UC-010
+# Author: SOC-in-a-Box
+# Last Updated: 2026-03-01
+# ============================================
+
+# ============================================
+# UC-001: SSH BRUTE FORCE DETECTION
+# ============================================
+alert tcp any any -> $HOME_NET 22 (msg:"[UC-001] SSH Brute Force - Multiple Failed Attempts"; flow:to_server,established; threshold:type both, track by_src, count 5, seconds 60; classtype:attempted-admin; sid:1000001; rev:1; metadata:attack_target SSH, mitre_attack T1110;)
+
+alert tcp any any -> $HOME_NET 22 (msg:"[UC-001] SSH Connection from Known Bad Country"; flow:to_server; geoip:src,RU,CN,KP,IR; classtype:policy-violation; sid:1000002; rev:1;)
+
+# ============================================
+# UC-002: PORT SCAN DETECTION
+# ============================================
+alert tcp any any -> $HOME_NET any (msg:"[UC-002] TCP SYN Port Scan Detected"; flags:S,12; threshold:type both, track by_src, count 20, seconds 5; classtype:attempted-recon; sid:1000003; rev:1; metadata:mitre_attack T1046;)
+
+alert tcp any any -> $HOME_NET any (msg:"[UC-002] XMAS Scan Detected"; flags:FPU; classtype:attempted-recon; sid:1000004; rev:1; metadata:mitre_attack T1046;)
+
+alert tcp any any -> $HOME_NET any (msg:"[UC-002] NULL Scan Detected"; flags:0; classtype:attempted-recon; sid:1000005; rev:1; metadata:mitre_attack T1046;)
+
+# ============================================
+# UC-003: DNS TUNNELING / EXFILTRATION
+# ============================================
+alert dns any any -> any any (msg:"[UC-003] DNS Tunneling - Unusually Long Query"; dns.query; pcre:"/^[a-zA-Z0-9\-]{50,}\./"; classtype:bad-unknown; sid:1000006; rev:1; metadata:mitre_attack T1071.004;)
+
+alert dns any any -> any any (msg:"[UC-003] DNS Query to Known Tunneling Domain"; dns.query; content:"dnscat"; nocase; classtype:trojan-activity; sid:1000007; rev:1;)
+
+alert dns any any -> any any (msg:"[UC-003] Excessive DNS Queries - Possible Tunneling"; threshold:type both, track by_src, count 100, seconds 60; classtype:bad-unknown; sid:1000008; rev:1;)
+
+# ============================================
+# UC-004: MALWARE C2 COMMUNICATION
+# ============================================
+alert tcp $HOME_NET any -> any 4444 (msg:"[UC-004] Metasploit Meterpreter Default Port"; flow:to_server; classtype:trojan-activity; sid:1000009; rev:1; metadata:mitre_attack T1571;)
+
+alert tcp $HOME_NET any -> any 1337 (msg:"[UC-004] Common Backdoor Port 1337"; flow:to_server; classtype:trojan-activity; sid:1000010; rev:1;)
+
+alert http $HOME_NET any -> any any (msg:"[UC-004] Cobalt Strike Beacon User-Agent"; http.user_agent; content:"Mozilla/5.0 (compatible; MSIE 9.0; Windows NT"; classtype:trojan-activity; sid:1000011; rev:1; metadata:mitre_attack T1071.001;)
+
+alert tcp $HOME_NET any -> any any (msg:"[UC-004] Possible C2 Beaconing - Regular Intervals"; flow:to_server; threshold:type both, track by_src, count 60, seconds 3600; classtype:trojan-activity; sid:1000012; rev:1;)
+
+# ============================================
+# UC-005: DATA EXFILTRATION
+# ============================================
+alert tcp $HOME_NET any -> !$HOME_NET any (msg:"[UC-005] Large Outbound Data Transfer >10MB"; flow:to_server; dsize:>10000000; classtype:policy-violation; sid:1000013; rev:1; metadata:mitre_attack T1048;)
+
+alert http $HOME_NET any -> any any (msg:"[UC-005] HTTP POST Large Payload - Possible Exfil"; http.method; content:"POST"; http.content_len; content:">1000000"; classtype:policy-violation; sid:1000014; rev:1;)
+
+alert tls $HOME_NET any -> any any (msg:"[UC-005] TLS to File Sharing Service"; tls.sni; pcre:"/(wetransfer|dropbox|mega\.nz|sendspace|mediafire)/i"; classtype:policy-violation; sid:1000015; rev:1;)
+
+# ============================================
+# UC-006: LATERAL MOVEMENT
+# ============================================
+alert tcp $HOME_NET any -> $HOME_NET 3389 (msg:"[UC-006] Internal RDP Connection"; flow:to_server; classtype:policy-violation; sid:1000016; rev:1; metadata:mitre_attack T1021.001;)
+
+alert tcp $HOME_NET any -> $HOME_NET 445 (msg:"[UC-006] Internal SMB Connection"; flow:to_server; classtype:policy-violation; sid:1000017; rev:1; metadata:mitre_attack T1021.002;)
+
+alert tcp $HOME_NET any -> $HOME_NET 5985:5986 (msg:"[UC-006] WinRM/PowerShell Remoting"; flow:to_server; classtype:policy-violation; sid:1000018; rev:1; metadata:mitre_attack T1021.006;)
+
+alert tcp $HOME_NET any -> $HOME_NET 22 (msg:"[UC-006] Internal SSH Connection"; flow:to_server; classtype:policy-violation; sid:1000019; rev:1;)
+
+# ============================================
+# UC-007: CREDENTIAL THEFT
+# ============================================
+alert http any any -> any any (msg:"[UC-007] Mimikatz Download Attempt"; http.uri; content:"mimikatz"; nocase; classtype:trojan-activity; sid:1000020; rev:1; metadata:mitre_attack T1003;)
+
+alert http any any -> any any (msg:"[UC-007] Password Dump Tool Download"; http.uri; pcre:"/(pwdump|fgdump|gsecdump|wce)/i"; classtype:trojan-activity; sid:1000021; rev:1;)
+
+# ============================================
+# UC-008: WEB ATTACKS
+# ============================================
+alert http any any -> $HOME_NET any (msg:"[UC-008] SQL Injection Attempt"; http.uri; pcre:"/(\%27)|(\')|(\-\-)|(\%23)|(#)/i"; classtype:web-application-attack; sid:1000022; rev:1; metadata:mitre_attack T1190;)
+
+alert http any any -> $HOME_NET any (msg:"[UC-008] XSS Attack Attempt"; http.uri; pcre:"/<script>|javascript:|onerror=|onload=/i"; classtype:web-application-attack; sid:1000023; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"[UC-008] Path Traversal Attempt"; http.uri; content:"../"; classtype:web-application-attack; sid:1000024; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"[UC-008] Command Injection Attempt"; http.uri; pcre:"/(\||;|`|\$\()/"; classtype:web-application-attack; sid:1000025; rev:1;)
+
+# ============================================
+# UC-009: CRYPTOMINING
+# ============================================
+alert tcp $HOME_NET any -> any 3333 (msg:"[UC-009] Stratum Mining Protocol - Port 3333"; flow:to_server; classtype:policy-violation; sid:1000026; rev:1; metadata:mitre_attack T1496;)
+
+alert tcp $HOME_NET any -> any 14444 (msg:"[UC-009] Monero Mining Pool Port"; flow:to_server; classtype:policy-violation; sid:1000027; rev:1;)
+
+alert http $HOME_NET any -> any any (msg:"[UC-009] CoinHive JavaScript Miner"; http.response_body; content:"coinhive.min.js"; nocase; classtype:policy-violation; sid:1000028; rev:1;)
+
+# ============================================
+# UC-010: TOR / ANONYMIZATION
+# ============================================
+alert tcp $HOME_NET any -> any 9001 (msg:"[UC-010] Tor Directory Server Connection"; flow:to_server; classtype:policy-violation; sid:1000029; rev:1; metadata:mitre_attack T1090.003;)
+
+alert tcp $HOME_NET any -> any 9030 (msg:"[UC-010] Tor Relay Connection"; flow:to_server; classtype:policy-violation; sid:1000030; rev:1;)
+
+alert tls $HOME_NET any -> any any (msg:"[UC-010] Connection to VPN/Proxy Service"; tls.sni; pcre:"/(nordvpn|expressvpn|protonvpn|windscribe|mullvad)/i"; classtype:policy-violation; sid:1000031; rev:1;)

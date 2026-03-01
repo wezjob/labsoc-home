@@ -95,3 +95,5 @@ build/
 .env
 .env.local
 ssl/
+logs/suricata/
+logs/zeek/
