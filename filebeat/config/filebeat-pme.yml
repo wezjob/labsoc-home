@@ -1,0 +1,112 @@
+# ============================================
+# SOC-PME Filebeat Configuration (Optimized)
+# ============================================
+# Target: 4GB RAM appliance
+# ============================================
+
+filebeat.inputs:
+  # ============================================
+  # Suricata EVE JSON Logs
+  # ============================================
+  - type: log
+    id: suricata-eve
+    enabled: true
+    paths:
+      - /var/log/suricata/eve.json
+    json.keys_under_root: true
+    json.add_error_key: true
+    fields:
+      type: suricata
+      vlan: all
+    fields_under_root: true
+    processors:
+      - add_fields:
+          target: event
+          fields:
+            dataset: suricata.eve
+            module: suricata
+
+  # ============================================
+  # System Auth Logs
+  # ============================================
+  - type: log
+    id: auth-logs
+    enabled: true
+    paths:
+      - /var/log/host/auth.log
+      - /var/log/host/secure
+    fields:
+      type: syslog
+      log_type: auth
+    fields_under_root: true
+
+  # ============================================
+  # Syslog (from network devices)
+  # ============================================
+  - type: syslog
+    id: network-syslog
+    enabled: true
+    protocol.udp:
+      host: "0.0.0.0:5514"
+    fields:
+      type: syslog
+      source: network
+    fields_under_root: true
+
+# ============================================
+# Output Configuration
+# ============================================
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  username: "elastic"
+  password: "${ELASTIC_PASSWORD}"
+  index: "soc-pme-%{[type]}-%{+yyyy.MM.dd}"
+  bulk_max_size: 50              # Reduced for low memory
+
+# ============================================
+# Index Lifecycle Management
+# ============================================
+setup.ilm:
+  enabled: true
+  rollover_alias: "soc-pme"
+  pattern: "{now/d}-000001"
+  policy_name: "soc-pme-policy"
+  
+setup.template:
+  name: "soc-pme"
+  pattern: "soc-pme-*"
+  settings:
+    index:
+      number_of_shards: 1
+      number_of_replicas: 0       # Single node, no replicas
+      refresh_interval: "30s"     # Reduced refresh for performance
+
+# ============================================
+# Kibana Setup
+# ============================================
+setup.kibana:
+  host: "kibana:5601"
+  username: "elastic"
+  password: "${ELASTIC_PASSWORD}"
+
+# ============================================
+# Logging (Minimal)
+# ============================================
+logging.level: warning
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 3
+  permissions: 0640
+
+# ============================================
+# Resource Limits
+# ============================================
+queue.mem:
+  events: 1024                    # Reduced queue size
+  flush.min_events: 256
+  flush.timeout: 5s
+
+# Monitoring (disabled for resources)
+monitoring.enabled: false
