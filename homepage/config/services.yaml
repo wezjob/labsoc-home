@@ -1,0 +1,98 @@
+# ============================================
+# Homepage Dashboard - Services Configuration
+# SOC-PME Full Stack Edition
+# ============================================
+
+- SOC - Security Operations:
+    - Kibana SIEM:
+        icon: kibana.png
+        href: http://172.16.10.1:5601
+        description: Security Information & Event Management
+        server: soc-pme-docker
+        container: soc-pme-kibana
+        widget:
+          type: kibana
+          url: http://172.16.10.1:5601
+          
+    - n8n SOAR:
+        icon: n8n.png
+        href: http://172.16.10.1:5678
+        description: Security Orchestration & Automation
+        server: soc-pme-docker
+        container: soc-pme-n8n
+        
+    - Elasticsearch:
+        icon: elasticsearch.png
+        href: http://172.16.10.1:9200
+        description: Log Storage & Search Engine
+        server: soc-pme-docker
+        container: soc-pme-elasticsearch
+        widget:
+          type: customapi
+          url: http://172.16.10.1:9200/_cluster/health
+          username: elastic
+          password: "{{HOMEPAGE_VAR_ELASTIC_PASSWORD}}"
+          
+    - Suricata IDS:
+        icon: suricata.png
+        description: Intrusion Detection System
+        server: soc-pme-docker
+        container: soc-pme-suricata
+
+- Collaboration:
+    - Nextcloud:
+        icon: nextcloud.png
+        href: https://cloud.soc-pme.local
+        description: Private Cloud & File Sharing
+        server: soc-pme-docker
+        container: soc-pme-nextcloud
+        widget:
+          type: nextcloud
+          url: https://cloud.soc-pme.local
+          username: admin
+          password: "{{HOMEPAGE_VAR_NC_PASSWORD}}"
+          
+    - Collabora Office:
+        icon: collabora.png
+        href: https://office.soc-pme.local
+        description: Online Office Suite
+        server: soc-pme-docker
+        container: soc-pme-collabora
+
+- Messagerie:
+    - Webmail:
+        icon: roundcube.png
+        href: https://mail.soc-pme.local
+        description: Webmail Interface
+        server: soc-pme-docker
+        container: soc-pme-mailu-webmail
+        
+    - Mail Admin:
+        icon: mailu.png
+        href: https://mail.soc-pme.local/admin
+        description: Mail Server Administration
+        server: soc-pme-docker
+        container: soc-pme-mailu-admin
+
+- Infrastructure:
+    - Traefik:
+        icon: traefik.png
+        href: http://172.16.10.1:8081
+        description: Reverse Proxy & Load Balancer
+        server: soc-pme-docker
+        container: soc-pme-traefik
+        widget:
+          type: traefik
+          url: http://172.16.10.1:8081
+          
+    - PostgreSQL:
+        icon: postgres.png
+        description: Database Server
+        server: soc-pme-docker
+        container: soc-pme-postgres
+        
+    - Redis:
+        icon: redis.png
+        description: Cache Server
+        server: soc-pme-docker
+        container: soc-pme-redis

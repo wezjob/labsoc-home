@@ -1,0 +1,46 @@
+# ============================================
+# Homepage Dashboard - Settings
+# ============================================
+
+title: SOC-PME Dashboard
+description: Security Operations Center - PME Edition
+theme: dark
+color: slate
+
+background:
+  image: /images/background.jpg
+  blur: sm
+  saturate: 100
+  brightness: 75
+  opacity: 100
+
+cardBlur: md
+favicon: /favicon.ico
+
+useEqualHeights: true
+
+layout:
+  SOC - Security Operations:
+    style: row
+    columns: 4
+  Collaboration:
+    style: row
+    columns: 2
+  Messagerie:
+    style: row
+    columns: 2
+  Infrastructure:
+    style: row
+    columns: 3
+
+headerStyle: boxed
+
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: false
+  showSearchSuggestions: true
+  hideVisitURL: false
+
+providers:
+  openweathermap: openweathermapapikey
+  weatherapi: weatherapiapikey

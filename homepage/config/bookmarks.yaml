@@ -1,0 +1,42 @@
+# ============================================
+# Homepage Dashboard - Bookmarks
+# ============================================
+
+- Documentation:
+    - NIST CSF:
+        - abbr: NIST
+          href: https://www.nist.gov/cyberframework
+    - Suricata Docs:
+        - abbr: SUR
+          href: https://suricata.readthedocs.io/
+    - Elastic SIEM:
+        - abbr: ELK
+          href: https://www.elastic.co/guide/en/security/current/index.html
+    - Nextcloud Admin:
+        - abbr: NC
+          href: https://docs.nextcloud.com/server/latest/admin_manual/
+
+- Security Tools:
+    - VirusTotal:
+        - abbr: VT
+          href: https://www.virustotal.com/
+    - AbuseIPDB:
+        - abbr: IP
+          href: https://www.abuseipdb.com/
+    - Shodan:
+        - abbr: SH
+          href: https://www.shodan.io/
+    - MITRE ATT&CK:
+        - abbr: ATT
+          href: https://attack.mitre.org/
+
+- Resources:
+    - CVE Database:
+        - abbr: CVE
+          href: https://cve.mitre.org/
+    - ExploitDB:
+        - abbr: EDB
+          href: https://www.exploit-db.com/
+    - MalwareBazaar:
+        - abbr: MAL
+          href: https://bazaar.abuse.ch/

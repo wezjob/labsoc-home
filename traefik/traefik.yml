@@ -1,0 +1,46 @@
+# ============================================
+# Traefik Static Configuration
+# SOC-PME Full Stack
+# ============================================
+
+api:
+  dashboard: true
+  insecure: true  # Only from VLAN SOC
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: soc-internal
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: ${ADMIN_EMAIL:-admin@soc-pme.local}
+      storage: /letsencrypt/acme.json
+      tlsChallenge: {}
+
+log:
+  level: WARN
+  filePath: /var/log/traefik/traefik.log
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json

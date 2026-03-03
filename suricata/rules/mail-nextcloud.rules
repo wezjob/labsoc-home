@@ -1,0 +1,67 @@
+# ============================================
+# Suricata Rules - Mail & Collaboration Security
+# SOC-PME Full Stack Edition
+# ============================================
+
+# ============================================
+# MAIL SECURITY RULES
+# ============================================
+
+# Brute force SMTP authentication
+alert tcp any any -> $HOME_NET 25 (msg:"SOC-PME: SMTP Auth Brute Force Attempt"; flow:to_server,established; content:"AUTH"; threshold:type threshold, track by_src, count 10, seconds 60; classtype:attempted-admin; sid:3000001; rev:1;)
+
+# Brute force IMAP authentication  
+alert tcp any any -> $HOME_NET 143 (msg:"SOC-PME: IMAP Auth Brute Force Attempt"; flow:to_server,established; content:"LOGIN"; threshold:type threshold, track by_src, count 10, seconds 60; classtype:attempted-admin; sid:3000002; rev:1;)
+
+# Brute force POP3 authentication
+alert tcp any any -> $HOME_NET 110 (msg:"SOC-PME: POP3 Auth Brute Force Attempt"; flow:to_server,established; content:"USER"; threshold:type threshold, track by_src, count 10, seconds 60; classtype:attempted-admin; sid:3000003; rev:1;)
+
+# Suspicious attachment extensions
+alert smtp any any -> $HOME_NET any (msg:"SOC-PME: Suspicious Email Attachment - Executable"; file.name; content:".exe"; nocase; classtype:policy-violation; sid:3000010; rev:1;)
+alert smtp any any -> $HOME_NET any (msg:"SOC-PME: Suspicious Email Attachment - Script"; file.name; pcre:"/\.(vbs|js|ps1|bat|cmd|hta)$/i"; classtype:policy-violation; sid:3000011; rev:1;)
+alert smtp any any -> $HOME_NET any (msg:"SOC-PME: Suspicious Email Attachment - Macro Document"; file.name; pcre:"/\.(docm|xlsm|pptm)$/i"; classtype:policy-violation; sid:3000012; rev:1;)
+
+# Large email (potential data exfiltration)
+alert smtp any any -> any any (msg:"SOC-PME: Large Outbound Email (>25MB)"; flow:to_server; dsize:>26214400; classtype:policy-violation; sid:3000020; rev:1;)
+
+# Open relay detection
+alert smtp any any -> $HOME_NET 25 (msg:"SOC-PME: Potential Open Relay Test"; content:"MAIL FROM"; content:"RCPT TO"; pcre:"/RCPT TO.*@(?!soc-pme\.local)/i"; classtype:attempted-recon; sid:3000021; rev:1;)
+
+# ============================================
+# NEXTCLOUD SECURITY RULES
+# ============================================
+
+# Nextcloud brute force login
+alert http any any -> $HOME_NET any (msg:"SOC-PME: Nextcloud Login Brute Force"; flow:to_server,established; http.uri; content:"/login"; http.method; content:"POST"; threshold:type threshold, track by_src, count 5, seconds 60; classtype:attempted-admin; sid:3000100; rev:1;)
+
+# Nextcloud WebDAV brute force
+alert http any any -> $HOME_NET any (msg:"SOC-PME: Nextcloud WebDAV Auth Brute Force"; flow:to_server,established; http.uri; content:"/remote.php/dav"; http.header; content:"401"; threshold:type threshold, track by_src, count 10, seconds 60; classtype:attempted-admin; sid:3000101; rev:1;)
+
+# Nextcloud suspicious file upload
+alert http any any -> $HOME_NET any (msg:"SOC-PME: Nextcloud Suspicious File Upload - Executable"; flow:to_server,established; http.uri; content:"/remote.php/dav"; http.method; content:"PUT"; file.name; pcre:"/\.(exe|dll|msi|scr)$/i"; classtype:policy-violation; sid:3000110; rev:1;)
+
+# Nextcloud mass download (potential data exfiltration)
+alert http any any -> $HOME_NET any (msg:"SOC-PME: Nextcloud Mass Download Detected"; flow:to_server,established; http.uri; content:"/remote.php/dav"; http.method; content:"GET"; threshold:type threshold, track by_src, count 100, seconds 60; classtype:policy-violation; sid:3000111; rev:1;)
+
+# Nextcloud sharing to external domain
+alert http any any -> $HOME_NET any (msg:"SOC-PME: Nextcloud External Share Created"; flow:to_server,established; http.uri; content:"/ocs/v2.php/apps/files_sharing"; http.method; content:"POST"; content:"shareType"; content:"3"; classtype:policy-violation; sid:3000120; rev:1;)
+
+# ============================================
+# COLLABORATION SECURITY
+# ============================================
+
+# Collabora suspicious document
+alert http any any -> $HOME_NET 9980 (msg:"SOC-PME: Collabora Suspicious Macro Document"; flow:to_server,established; file.magic; content:"Microsoft"; content:"macro"; classtype:policy-violation; sid:3000200; rev:1;)
+
+# ============================================
+# GENERAL WEB APPLICATION RULES
+# ============================================
+
+# SQL Injection attempts on Nextcloud/Mail
+alert http any any -> $HOME_NET any (msg:"SOC-PME: SQL Injection Attempt on Web App"; flow:to_server,established; http.uri; pcre:"/(\%27)|(\')|(\-\-)|(\%23)|(#)/i"; classtype:web-application-attack; sid:3000300; rev:1;)
+
+# XSS attempts
+alert http any any -> $HOME_NET any (msg:"SOC-PME: XSS Attempt on Web App"; flow:to_server,established; http.uri; pcre:"/<script|javascript:|onerror=|onload=/i"; classtype:web-application-attack; sid:3000301; rev:1;)
+
+# Path traversal
+alert http any any -> $HOME_NET any (msg:"SOC-PME: Path Traversal Attempt"; flow:to_server,established; http.uri; content:"../"; classtype:web-application-attack; sid:3000302; rev:1;)

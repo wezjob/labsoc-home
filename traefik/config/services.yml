@@ -1,0 +1,188 @@
+# ============================================
+# Traefik Dynamic Configuration - Services
+# SOC-PME Full Stack
+# ============================================
+
+http:
+  # ============================================
+  # ROUTERS
+  # ============================================
+  routers:
+    # Nextcloud
+    nextcloud:
+      rule: "Host(`cloud.soc-pme.local`) || Host(`nextcloud.soc-pme.local`)"
+      service: nextcloud
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - nextcloud-headers
+        - nextcloud-redirectregex
+        
+    # Collabora
+    collabora:
+      rule: "Host(`office.soc-pme.local`) || Host(`collabora.soc-pme.local`)"
+      service: collabora
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+        
+    # Webmail
+    webmail:
+      rule: "Host(`mail.soc-pme.local`) || Host(`webmail.soc-pme.local`)"
+      service: webmail
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+        
+    # Kibana (SOC only)
+    kibana:
+      rule: "Host(`siem.soc-pme.local`) || Host(`kibana.soc-pme.local`)"
+      service: kibana
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - soc-ipwhitelist
+        
+    # n8n (SOC only)
+    n8n:
+      rule: "Host(`soar.soc-pme.local`) || Host(`n8n.soc-pme.local`)"
+      service: n8n
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - soc-ipwhitelist
+        
+    # Homepage Portal (SOC only)
+    homepage:
+      rule: "Host(`portal.soc-pme.local`) || Host(`home.soc-pme.local`)"
+      service: homepage
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - soc-ipwhitelist
+
+  # ============================================
+  # SERVICES
+  # ============================================
+  services:
+    nextcloud:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.20:80"
+          
+    collabora:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.21:9980"
+          
+    webmail:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.35:80"
+          
+    kibana:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.11:5601"
+          
+    n8n:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.14:5678"
+          
+    homepage:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.50:3000"
+
+  # ============================================
+  # MIDDLEWARES
+  # ============================================
+  middlewares:
+    # IP Whitelist for SOC VLAN
+    soc-ipwhitelist:
+      ipWhiteList:
+        sourceRange:
+          - "172.16.10.0/24"
+          - "127.0.0.1/32"
+          
+    # Nextcloud specific headers
+    nextcloud-headers:
+      headers:
+        stsSeconds: 15552000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        customFrameOptionsValue: "SAMEORIGIN"
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "no-referrer"
+        customResponseHeaders:
+          X-Robots-Tag: "none"
+          
+    # Nextcloud CalDAV/CardDAV redirect
+    nextcloud-redirectregex:
+      redirectRegex:
+        permanent: true
+        regex: "https://(.*)/.well-known/(card|cal)dav"
+        replacement: "https://${1}/remote.php/dav/"
+        
+    # Security headers for all services
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Frame-Options: "SAMEORIGIN"
+          X-Content-Type-Options: "nosniff"
+          X-XSS-Protection: "1; mode=block"
+          
+    # Rate limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        
+    # Basic auth (for admin pages)
+    admin-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$xxx$yyy"  # Generate with: htpasswd -nb admin password
+
+# ============================================
+# TCP ROUTERS (for mail)
+# ============================================
+tcp:
+  routers:
+    smtp:
+      rule: "HostSNI(`*`)"
+      entryPoints:
+        - smtp
+      service: smtp
+    imap:
+      rule: "HostSNI(`*`)"
+      entryPoints:
+        - imap
+      service: imap
+      
+  services:
+    smtp:
+      loadBalancer:
+        servers:
+          - address: "172.18.0.30:25"
+    imap:
+      loadBalancer:
+        servers:
+          - address: "172.18.0.30:143"

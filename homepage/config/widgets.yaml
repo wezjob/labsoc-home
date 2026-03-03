@@ -1,0 +1,31 @@
+# ============================================
+# Homepage Dashboard - Widgets
+# ============================================
+
+- resources:
+    cpu: true
+    memory: true
+    disk: /
+    cputemp: true
+    uptime: true
+    units: metric
+    refresh: 3000
+    
+- search:
+    provider: google
+    target: _blank
+    
+- datetime:
+    text_size: xl
+    format:
+      dateStyle: long
+      timeStyle: short
+      hourCycle: h23
+
+- openmeteo:
+    label: Local
+    latitude: 48.8566
+    longitude: 2.3522
+    timezone: Europe/Paris
+    units: metric
+    cache: 5

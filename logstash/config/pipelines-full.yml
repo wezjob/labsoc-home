@@ -1,0 +1,16 @@
+# ============================================
+# Logstash Pipelines Configuration
+# SOC-PME Full Stack
+# ============================================
+
+- pipeline.id: suricata
+  path.config: "/usr/share/logstash/pipeline/suricata.conf"
+  
+- pipeline.id: syslog
+  path.config: "/usr/share/logstash/pipeline/syslog.conf"
+  
+- pipeline.id: mail
+  path.config: "/usr/share/logstash/pipeline/mail.conf"
+  
+- pipeline.id: nextcloud
+  path.config: "/usr/share/logstash/pipeline/nextcloud.conf"
